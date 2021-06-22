@@ -7,26 +7,29 @@ art_make( MODULE_LIBRARIES larcorealg_Geometry
                            larevt_Filters
                            lardataobj_RawData
                            larevt_CalibrationDBI_Providers
-                           ${ART_FRAMEWORK_CORE}
-                           ${ART_FRAMEWORK_PRINCIPAL}
-                           ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                           ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                           ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-                           ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+                           art::Framework_Core
+                           art::Framework_Principal
+                           art::Framework_Services_Registry
+                           art::Framework_Services_System_FileCatalogMetadata_service art::Framework_Services_System_FloatingPointControl_service art::Framework_Services_System_TriggerNamesService_service
+                           art::Framework_Services_System_FloatingPointControl_service
+                           art_root_io::TFileService_service_plugin
+                           art_root_io::tfile_support 
                            art_Persistency_Common
                            art_Persistency_Provenance
                            art_Utilities
                            canvas
-                           ${MF_MESSAGELOGGER}
-                           ${MF_UTILITIES}
-                           ${FHICLCPP}
+                           messagefacility::MF_MessageLogger
+                           messagefacility::headers
+                           fhiclcpp::fhiclcpp fhiclcpp::types
                            ${CETLIB}
                            cetlib_except
-                           ${CLHEP}
-                           ${ROOT_GEOM}
-                           ${ROOT_XMLIO}
-                           ${ROOT_GDML}
-                           ${ROOT_BASIC_LIB_LIST}
+                           ROOT::Core
+                           ROOT::Geom
+                           ROOT::XMLIO
+                           ROOT::Gdml
+                           ROOT::MathCore
+                           ROOT::Core
+                           
         )
 
 #install_headers()

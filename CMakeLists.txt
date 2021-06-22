@@ -12,14 +12,13 @@
 #  buildtool [-I /install/path] -bt[i] -jN
 # ======================================================================
 
-cmake_minimum_required (VERSION 3.12...3.18 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.19 FATAL_ERROR)
 
-project(larwirecell LANGUAGES CXX)
+project(larwirecell VERSION 09.02.06 LANGUAGES CXX)
 
-# cetbuildtools contains our cmake modules
-find_package(cetbuildtools REQUIRED)
-
-list(APPEND CMAKE_MODULE_PATH $ENV{CANVAS_ROOT_IO_DIR}/Modules $ENV{ART_DIR}/Modules)
+find_package(cetmodules REQUIRED)
+find_package(canvas_root_io)
+find_package(art)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -37,13 +36,11 @@ cet_report_compiler_flags()
 # these are minimum required versions, not the actual product versions
 find_ups_product( larcore )
 find_ups_product( lardata )
-find_ups_product( larevt )
-find_ups_product( lardataobj )
 find_ups_product( lardataalg )
 find_ups_product( larcoreobj )
 find_ups_product( larcorealg )
 find_ups_product( art )
-find_ups_product(art_root_io)
+find_package(art_root_io)
 
 find_ups_product( jsoncpp )
 find_ups_product( jsonnet )
@@ -52,14 +49,14 @@ find_ups_product( spdlog )
 find_ups_product( wirecell )
 
 
-cet_find_library( WIRECELL_SIGPROC_LIB NAMES WireCellSigProc PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_GEN_LIB NAMES WireCellGen PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_IFACE_LIB NAMES WireCellIface PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_UTIL_LIB NAMES WireCellUtil PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_APPS_LIB NAMES WireCellApps PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
+cet_find_library( WIRECELL_SIGPROC_LIB NAMES WireCellSigProc PATHS ENV WIRECELL_LIB  )
+cet_find_library( WIRECELL_GEN_LIB NAMES WireCellGen PATHS ENV WIRECELL_LIB  )
+cet_find_library( WIRECELL_IFACE_LIB NAMES WireCellIface PATHS ENV WIRECELL_LIB  )
+cet_find_library( WIRECELL_UTIL_LIB NAMES WireCellUtil PATHS ENV WIRECELL_LIB  )
+cet_find_library( WIRECELL_APPS_LIB NAMES WireCellApps PATHS ENV WIRECELL_LIB  )
 set(WIRECELL_LIBS ${WIRECELL_APPS_LIB} ${WIRECELL_SIGPROC_LIB} ${WIRECELL_IFACE_LIB} ${WIRECELL_UTIL_LIB} ${WIRECELL_GEN_LIB})
 
-cet_find_library( JSONCPP NAMES jsoncpp PATHS ENV JSONCPP_LIB NO_DEFAULT_PATH )
+cet_find_library( JSONCPP NAMES jsoncpp PATHS ENV JSONCPP_LIB  )
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)
@@ -68,10 +65,12 @@ include(BuildPlugins)
 
 # sources
 add_subdirectory(larwirecell)
-
+add_subdirectory(cmakeConfig)
 # ups - table and config files
+if(WANT_UPS)
 add_subdirectory(ups)
+endif()
 
 # packaging utility
-include(UseCPack)
+#include(UseCPack)
 

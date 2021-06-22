@@ -1,0 +1,2 @@
+find_package( larevt REQUIRED )
+find_package( wirecell )

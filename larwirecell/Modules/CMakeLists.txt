@@ -10,4 +10,3 @@ art_make(
 add_subdirectory(Geometry)
 
 install_headers()
-install_source()

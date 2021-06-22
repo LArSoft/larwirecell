@@ -3,4 +3,3 @@
 # has no library.
 
 install_headers()
-install_source()
