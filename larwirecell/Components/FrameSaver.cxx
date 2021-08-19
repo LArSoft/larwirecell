@@ -237,8 +237,9 @@ traces_bychan(ITrace::vector& traces, traces_bychan_t& ret)
 // blissfully ignorant of the evilness this implies.
 struct PU {
   Json::Value pu;
+  unsigned int ts;
 
-  PU(Json::Value pu) : pu(pu) {}
+  PU(Json::Value pu, unsigned int ts) : pu(pu), ts(ts) {}
 
   float
   operator()(int chid)
@@ -247,7 +248,7 @@ struct PU {
     if (pu.asString() == "fiction") {
       art::ServiceHandle<lariov::DetPedestalService const> dps;
       const auto& pv = dps->GetPedestalProvider();
-      return pv.PedMean(chid);
+      return pv.PedMean(ts, chid);
     }
     return 0.0;
   }
@@ -308,7 +309,7 @@ FrameSaver::save_as_raw(art::Event& event)
         out->back().SetPedestal(baseline, m_pedestal_sigma);
       }
       else {
-        PU pu(m_pedestal_mean);
+        PU pu(m_pedestal_mean, event.time().value());
         out->back().SetPedestal(pu(chid), m_pedestal_sigma);
       }
     }

@@ -28,6 +28,7 @@
     - DetPedestalService: to learn and restore a per-channel baseline.
 
 */
+#include "art/Framework/Principal/Event.h"
 
 #include "ChannelNoiseDB.h"
 
@@ -75,7 +76,7 @@ void wcls::ChannelNoiseDB::visit(art::Event & event)
 
 	std::vector<int> bad_channels;
 	for(size_t ich=0; ich<nchans; ++ich) {
-	    if (csvc.IsBad(ich)) {
+	    if (csvc.IsBad(event.time().value(), ich)) {
 		bad_channels.push_back(ich);
 	    }
 	}

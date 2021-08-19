@@ -3,6 +3,8 @@
     e.g. misconfigured channels or bad channels
 */
 
+#include "art/Framework/Principal/Event.h"
+
 #include "ChannelSelectorDB.h"
 
 #include "larevt/CalibrationDBI/Interface/ElectronicsCalibService.h"
@@ -42,7 +44,7 @@ void wcls::ChannelSelectorDB::visit(art::Event & event)
 	auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
 
 	for(size_t ich=0; ich<nchans; ++ich) {
-	    if (csvc.IsBad(ich)) {
+	    if (csvc.IsBad(event.time().value(), ich)) {
 		m_bad_channels.push_back(ich);
 	    }
 	}

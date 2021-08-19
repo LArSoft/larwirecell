@@ -116,7 +116,7 @@ namespace noisefilteralg {
           const raw::RawDigit::ADCvector_t& rawAdcVec = rawDigit.ADCs();
 
           unsigned int channel = rawDigit.Channel();
-          float pedestal = pedestalValues.PedMean(channel);
+          float pedestal = pedestalValues.PedMean(evt.time().value(), channel);
 
           std::copy(
             rawAdcVec.begin() + startBin, rawAdcVec.begin() + stopBin, outputVector.begin());
@@ -182,7 +182,7 @@ namespace noisefilteralg {
     // Recover bad channels from the database
     std::vector<int> bad_channels;
     for (int channelIdx = 0; channelIdx < nchans; channelIdx++)
-      if (channelStatus.IsBad(channelIdx)) bad_channels.push_back(channelIdx);
+      if (channelStatus.IsBad(e.time().value(), channelIdx)) bad_channels.push_back(channelIdx);
 
     // Q&D RC+RC time constant - all have same.
     const double rcrc = 1.0 * units::millisecond;
@@ -431,7 +431,7 @@ namespace noisefilteralg {
       auto& quiet_charges = quiet_trace->charge();
 
       // Recover the database version of the pedestal, we'll offset the waveforms so it matches
-      float pedestal = pedestalValues.PedMean(channel);
+      float pedestal = pedestalValues.PedMean(e.time().value(), channel);
 
       std::transform(quiet_charges.begin() + startBin,
                      quiet_charges.begin() + stopBin,
