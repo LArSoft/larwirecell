@@ -10,10 +10,10 @@ art_make(
     lardataobj_RawData
     larevt_CalibrationDBI_IOVData
     larcorealg_Geometry
-    ${ART_FRAMEWORK_SERVICES_REGISTRY}
-    ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+    art::Framework_Services_Registry
+    art_root_io::TFileService_service
     ${WIRECELL_LIBS}
-    ${ROOT_CORE}
+    ROOT::Core
 )
 
 install_headers()

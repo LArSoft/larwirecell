@@ -9,16 +9,16 @@ art_make_library(
   LIBRARY_NAME WireCellLarsoft
   SOURCE ${wcls_components_sources}
   LIBRARIES
-    ${ART_FRAMEWORK_CORE}
-    ${ART_FRAMEWORK_PRINCIPAL}
-    ${ART_FRAMEWORK_SERVICES_REGISTRY}
-    ${ART_PERSISTENCY_PROVENANCE}
-    ${ART_UTILITIES}
-    ${JSONCPP}
-    ${ROOT_CORE}
+    art::Framework_Core
+    art::Framework_Principal
+    art::Framework_Services_Registry
+    ART_PERSISTENCY_PROVENANCE
+    art::Utilities
+    JSONCPP
+    ROOT::Core
     ${WIRECELL_LIBS}
-    canvas
-    cetlib_except
+    canvas::canvas
+    cetlib_except::cetlib_except
     larcorealg_Geometry
     lardataalg_DetectorInfo
     lardataobj_RawData

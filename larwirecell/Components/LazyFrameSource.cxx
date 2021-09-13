@@ -5,6 +5,7 @@
 //#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardataobj/RawData/RawDigit.h"
 #include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/Run.h"
 
 #include "TTimeStamp.h"
 

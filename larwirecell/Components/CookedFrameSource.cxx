@@ -2,6 +2,7 @@
 #include "art/Framework/Principal/Handle.h"
 
 #include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/Run.h"
 #include "lardataobj/RecoBase/Wire.h"
 
 #include "TTimeStamp.h"

@@ -3,6 +3,7 @@
 #include "art/Framework/Principal/Event.h"
 
 #include "art/Persistency/Common/PtrMaker.h"
+#include "canvas/Persistency/Common/Assns.h"
 
 #include "lardataobj/RecoBase/Wire.h"
 #include "lardataobj/RawData/RawDigit.h"

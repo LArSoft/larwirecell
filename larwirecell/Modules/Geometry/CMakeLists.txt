@@ -7,25 +7,24 @@ art_make( MODULE_LIBRARIES larcorealg_Geometry
                            larevt_Filters
                            lardataobj_RawData
                            larevt_CalibrationDBI_Providers
-                           ${ART_FRAMEWORK_CORE}
-                           ${ART_FRAMEWORK_PRINCIPAL}
-                           ${ART_FRAMEWORK_SERVICES_REGISTRY}
+                           art::Framework_Core
+                           art::Framework_Principal
+                           art::Framework_Services_Registry
                            ${ART_FRAMEWORK_SERVICES_OPTIONAL}
                            ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
                            ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-                           art_Persistency_Common
-                           art_Persistency_Provenance
-                           art_Utilities
-                           canvas
-                           ${MF_MESSAGELOGGER}
+                           art::Persistency_Common
+                           art::Persistency_Provenance
+                           art::Utilities
+                           canvas::canvas
+                           messagefacility::MF_MessageLogger
                            ${MF_UTILITIES}
-                           ${FHICLCPP}
-                           ${CETLIB}
-                           cetlib_except
-                           ${CLHEP}
-                           ${ROOT_GEOM}
-                           ${ROOT_XMLIO}
-                           ${ROOT_GDML}
+                           fhiclcpp::fhiclcpp
+                           cetlib::cetlib
+                           cetlib_except::cetlib_except
+                           ROOT::Geom
+                           ROOT::XMLIO
+                           ROOT::Gdml
                            ${ROOT_BASIC_LIB_LIST}
         )
 
