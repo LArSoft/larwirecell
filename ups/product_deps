@@ -13,7 +13,7 @@ defaultqual	e20
 fcldir product_dir fcl
 #
 product         version
-larevt          v09_03_04
+larevt          v09_03_04_01
 wirecell	v0_17_0
 cetbuildtools	v8_18_05   -   only_for_build
 end_product_list
