@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
-project(larwirecell VERSION 09.06.03 LANGUAGES CXX)
+project(larwirecell VERSION 09.06.03.01 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
 find_package(cetbuildtools REQUIRED)
@@ -35,7 +35,7 @@ cet_report_compiler_flags()
 find_package(canvas_root_io REQUIRED)
 find_package(art REQUIRED PUBLIC)
 find_package(art_root_io REQUIRED PUBLIC)
-find_package (Eigen3 3.3...3.3.9 REQUIRED NO_MODULE)
+find_package (Eigen3 REQUIRED NO_MODULE)
 find_package(ROOT COMPONENTS Core Geom XMLIO Gdml REQUIRED PUBLIC)
 
 find_ups_product( larcore )
