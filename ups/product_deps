@@ -14,7 +14,7 @@ fcldir product_dir fcl
 #
 product         version
 larevt          v09_04_06
-wirecell	v0_17_1
+wirecell	v0_17_1a
 cetbuildtools	v8_19_02   -   only_for_build
 end_product_list
 
