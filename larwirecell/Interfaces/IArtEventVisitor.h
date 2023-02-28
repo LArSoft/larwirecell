@@ -15,22 +15,22 @@
 #include "WireCellUtil/IComponent.h"
 
 namespace art {
-    class Event;
-    class EDProducer;
-    class ProducesCollector;
+  class Event;
+  class EDProducer;
+  class ProducesCollector;
 }
 namespace wcls {
-    class IArtEventVisitor : public WireCell::IComponent<IArtEventVisitor> {
-    public:
-        virtual ~IArtEventVisitor() {}
+  class IArtEventVisitor : public WireCell::IComponent<IArtEventVisitor> {
+  public:
+    virtual ~IArtEventVisitor() {}
 
-        /// If data is produced, must implement in order to call:
-        ///   collector.produces<DataType>();
-        /// If only reading data, implementation is not required.
-        virtual void produces(art::ProducesCollector& collector) {}
+    /// If data is produced, must implement in order to call:
+    ///   collector.produces<DataType>();
+    /// If only reading data, implementation is not required.
+    virtual void produces(art::ProducesCollector& collector) {}
 
-        /// Implement to visit an Art event.
-        virtual void visit(art::Event & event) = 0;
-    };
+    /// Implement to visit an Art event.
+    virtual void visit(art::Event& event) = 0;
+  };
 }
 #endif

@@ -23,8 +23,7 @@ CookedFrameSource::CookedFrameSource() : m_nticks(0) {}
 
 CookedFrameSource::~CookedFrameSource() {}
 
-WireCell::Configuration
-CookedFrameSource::default_configuration() const
+WireCell::Configuration CookedFrameSource::default_configuration() const
 {
   Configuration cfg;
   cfg["art_tag"] = ""; // how to look up the cooked digits
@@ -34,8 +33,7 @@ CookedFrameSource::default_configuration() const
   return cfg;
 }
 
-void
-CookedFrameSource::configure(const WireCell::Configuration& cfg)
+void CookedFrameSource::configure(const WireCell::Configuration& cfg)
 {
   const std::string art_tag = cfg["art_tag"].asString();
   if (art_tag.empty()) {
@@ -52,16 +50,14 @@ CookedFrameSource::configure(const WireCell::Configuration& cfg)
 
 // this code assumes that the high part of timestamp represents number of seconds from Jan 1st, 1970 and the low part
 // represents the number of nanoseconds.
-static double
-tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
+static double tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
 {
   TTimeStamp tts1(ts1.timeHigh(), ts1.timeLow());
   TTimeStamp tts2(ts2.timeHigh(), ts2.timeLow());
   return tts2.AsDouble() - tts1.AsDouble();
 }
 
-static SimpleTrace*
-make_trace(const recob::Wire& rw, unsigned int nticks_want)
+static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want)
 {
   // uint
   const raw::ChannelID_t chid = rw.Channel();
@@ -86,8 +82,7 @@ make_trace(const recob::Wire& rw, unsigned int nticks_want)
   return strace;
 }
 
-void
-CookedFrameSource::visit(art::Event& e)
+void CookedFrameSource::visit(art::Event& e)
 {
   auto const& event = e;
   // fixme: want to avoid depending on DetectorPropertiesService for now.
@@ -131,8 +126,7 @@ CookedFrameSource::visit(art::Event& e)
   m_frames.push_back(nullptr);
 }
 
-bool
-CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)
+bool CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)
 {
   frame = nullptr;
   if (m_frames.empty()) { return false; }

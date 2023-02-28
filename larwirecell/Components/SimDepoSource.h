@@ -25,43 +25,43 @@
 #ifndef LARWIRECELL_COMPONENTS_SIMDEPOSOURCE
 #define LARWIRECELL_COMPONENTS_SIMDEPOSOURCE
 
-#include "larwirecell/Interfaces/IArtEventVisitor.h"
-#include "WireCellIface/IDepoSource.h"
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/IDepo.h"
+#include "WireCellIface/IDepoSource.h"
 #include "canvas/Utilities/InputTag.h"
+#include "larwirecell/Interfaces/IArtEventVisitor.h"
 
 #include <deque>
 
 namespace wcls {
 
-    namespace bits {
-        class DepoAdapter;
-    }
+  namespace bits {
+    class DepoAdapter;
+  }
 
-    class SimDepoSource :  public IArtEventVisitor,
-                           public WireCell::IDepoSource,
-                           public WireCell::IConfigurable {
-    public:
-        SimDepoSource();
-        virtual ~SimDepoSource();
+  class SimDepoSource : public IArtEventVisitor,
+                        public WireCell::IDepoSource,
+                        public WireCell::IConfigurable {
+  public:
+    SimDepoSource();
+    virtual ~SimDepoSource();
 
-        /// IArtEventVisitor
-        virtual void visit(art::Event & event);
+    /// IArtEventVisitor
+    virtual void visit(art::Event& event);
 
-        /// IDepoSource
-        virtual bool operator()(WireCell::IDepo::pointer& out);
+    /// IDepoSource
+    virtual bool operator()(WireCell::IDepo::pointer& out);
 
-        /// IConfigurable
-        virtual WireCell::Configuration default_configuration() const;
-        virtual void configure(const WireCell::Configuration& config);
+    /// IConfigurable
+    virtual WireCell::Configuration default_configuration() const;
+    virtual void configure(const WireCell::Configuration& config);
 
-    private:
-        std::deque<WireCell::IDepo::pointer> m_depos;
-        bits::DepoAdapter* m_adapter;
+  private:
+    std::deque<WireCell::IDepo::pointer> m_depos;
+    bits::DepoAdapter* m_adapter;
 
-        art::InputTag m_inputTag;
-        art::InputTag m_assnTag; // associated input
-    };
+    art::InputTag m_inputTag;
+    art::InputTag m_assnTag; // associated input
+  };
 }
 #endif

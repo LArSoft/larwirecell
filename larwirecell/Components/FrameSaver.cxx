@@ -32,8 +32,7 @@ FrameSaver::FrameSaver() : m_frame(nullptr), m_nticks(0) {}
 
 FrameSaver::~FrameSaver() {}
 
-WireCell::Configuration
-FrameSaver::default_configuration() const
+WireCell::Configuration FrameSaver::default_configuration() const
 {
   Configuration cfg;
   cfg["anode"] = "AnodePlane";
@@ -86,20 +85,17 @@ FrameSaver::default_configuration() const
   return cfg;
 }
 
-static float
-summary_sum(const std::vector<float>& tsvals)
+static float summary_sum(const std::vector<float>& tsvals)
 {
   return std::accumulate(tsvals.begin(), tsvals.end(), 0);
 }
-static float
-summary_set(const std::vector<float>& tsvals)
+static float summary_set(const std::vector<float>& tsvals)
 {
   if (tsvals.empty()) { return 0.0; }
   return tsvals.back();
 }
 
-void
-FrameSaver::configure(const WireCell::Configuration& cfg)
+void FrameSaver::configure(const WireCell::Configuration& cfg)
 {
   const std::string anode_tn = cfg["anode"].asString();
   if (anode_tn.empty()) { THROW(ValueError() << errmsg{"FrameSaver requires an anode plane"}); }
@@ -181,8 +177,7 @@ FrameSaver::configure(const WireCell::Configuration& cfg)
   }
 }
 
-void
-FrameSaver::produces(art::ProducesCollector& collector)
+void FrameSaver::produces(art::ProducesCollector& collector)
 {
   for (auto tag : m_frame_tags) {
     if (!m_digitize) {
@@ -207,8 +202,7 @@ FrameSaver::produces(art::ProducesCollector& collector)
   }
 }
 
-static void
-tagged_traces(IFrame::pointer frame, std::string tag, ITrace::vector& ret)
+static void tagged_traces(IFrame::pointer frame, std::string tag, ITrace::vector& ret)
 {
   auto const& all_traces = frame->traces();
   const auto& ttinds = frame->tagged_traces(tag);
@@ -224,8 +218,7 @@ tagged_traces(IFrame::pointer frame, std::string tag, ITrace::vector& ret)
 }
 
 typedef std::unordered_map<int, ITrace::vector> traces_bychan_t;
-static void
-traces_bychan(ITrace::vector& traces, traces_bychan_t& ret)
+static void traces_bychan(ITrace::vector& traces, traces_bychan_t& ret)
 {
   for (auto trace : traces) {
     int chid = trace->channel();
@@ -241,8 +234,7 @@ struct PU {
 
   PU(Json::Value pu, unsigned int ts) : pu(pu), ts(ts) {}
 
-  float
-  operator()(int chid)
+  float operator()(int chid)
   {
     if (pu.isNumeric()) { return pu.asFloat(); }
     if (pu.asString() == "fiction") {
@@ -254,8 +246,7 @@ struct PU {
   }
 };
 
-void
-FrameSaver::save_as_raw(art::Event& event)
+void FrameSaver::save_as_raw(art::Event& event)
 {
   int nticks_want = m_nticks;
   if (nticks_want < 0) {
@@ -317,8 +308,7 @@ FrameSaver::save_as_raw(art::Event& event)
   }
 }
 
-void
-FrameSaver::save_as_cooked(art::Event& event)
+void FrameSaver::save_as_cooked(art::Event& event)
 {
   int nticks_want = m_nticks;
   if (nticks_want < 0) {
@@ -412,8 +402,7 @@ FrameSaver::save_as_cooked(art::Event& event)
   } // loop over tags
 }
 
-void
-FrameSaver::save_summaries(art::Event& event)
+void FrameSaver::save_summaries(art::Event& event)
 {
   const int ntags = m_summary_tags.size();
   if (0 == ntags) {
@@ -459,8 +448,7 @@ FrameSaver::save_summaries(art::Event& event)
   }
 }
 
-void
-FrameSaver::save_cmms(art::Event& event)
+void FrameSaver::save_cmms(art::Event& event)
 {
   if (m_cmms.isNull()) { return; }
   if (!m_cmms.isArray()) {
@@ -496,8 +484,7 @@ FrameSaver::save_cmms(art::Event& event)
   }
 }
 
-void
-FrameSaver::save_empty(art::Event& event)
+void FrameSaver::save_empty(art::Event& event)
 {
   // art (apparently?) requires something to be saved if a produces() is promised.
   std::cerr << "wclsFrameSaver: saving empty frame to art::Event\n";
@@ -527,8 +514,7 @@ FrameSaver::save_empty(art::Event& event)
   }
 }
 
-void
-FrameSaver::visit(art::Event& event)
+void FrameSaver::visit(art::Event& event)
 {
   if (!m_frame) {
     save_empty(event);
@@ -547,9 +533,8 @@ FrameSaver::visit(art::Event& event)
   m_frame = nullptr; // done with stashed frame
 }
 
-bool
-FrameSaver::operator()(const WireCell::IFrame::pointer& inframe,
-                       WireCell::IFrame::pointer& outframe)
+bool FrameSaver::operator()(const WireCell::IFrame::pointer& inframe,
+                            WireCell::IFrame::pointer& outframe)
 {
   // set an IFrame based on last visited event.
   outframe = inframe;

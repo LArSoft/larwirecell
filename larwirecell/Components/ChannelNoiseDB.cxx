@@ -32,113 +32,95 @@
 
 #include "ChannelNoiseDB.h"
 
-#include "larevt/CalibrationDBI/Interface/ElectronicsCalibService.h"
-#include "larevt/CalibrationDBI/Interface/ElectronicsCalibProvider.h"
-#include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
-#include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 #include "larcore/Geometry/Geometry.h"
-
+#include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
+#include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
+#include "larevt/CalibrationDBI/Interface/ElectronicsCalibProvider.h"
+#include "larevt/CalibrationDBI/Interface/ElectronicsCalibService.h"
 
 #include "WireCellUtil/NamedFactory.h"
 
-WIRECELL_FACTORY(wclsChannelNoiseDB, wcls::ChannelNoiseDB,
-		 wcls::IArtEventVisitor, WireCell::IChannelNoiseDatabase)
-
+WIRECELL_FACTORY(wclsChannelNoiseDB,
+                 wcls::ChannelNoiseDB,
+                 wcls::IArtEventVisitor,
+                 WireCell::IChannelNoiseDatabase)
 
 using namespace WireCell;
 
 wcls::ChannelNoiseDB::ChannelNoiseDB()
-    : OmniChannelNoiseDB()
-    , m_bad_channel_policy(kNothing)
-    , m_misconfig_channel_policy(kNothing)
+  : OmniChannelNoiseDB(), m_bad_channel_policy(kNothing), m_misconfig_channel_policy(kNothing)
+{}
+
+wcls::ChannelNoiseDB::~ChannelNoiseDB() {}
+
+void wcls::ChannelNoiseDB::visit(art::Event& event)
 {
-}
+  if ((!m_bad_channel_policy) && (!m_misconfig_channel_policy)) {
+    return; // no override
+  }
 
-wcls::ChannelNoiseDB::~ChannelNoiseDB()
-{
-}
+  // FIXME: the current assumption in this code is that LS channel
+  // numbers are identified with WCT channel IDs.  For MicroBooNE
+  // this holds but in general some translation is needed here.
+  auto const& gc = *lar::providerFrom<geo::Geometry>();
+  auto nchans = gc.Nchannels();
 
-void wcls::ChannelNoiseDB::visit(art::Event & event)
-{
-    if ((!m_bad_channel_policy) && (!m_misconfig_channel_policy)) {
-	return;			// no override
+  if (m_bad_channel_policy) {
+    auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
+
+    std::vector<int> bad_channels;
+    for (size_t ich = 0; ich < nchans; ++ich) {
+      if (csvc.IsBad(event.time().value(), ich)) { bad_channels.push_back(ich); }
     }
+    OmniChannelNoiseDB::set_bad_channels(bad_channels);
+  }
 
-    // FIXME: the current assumption in this code is that LS channel
-    // numbers are identified with WCT channel IDs.  For MicroBooNE
-    // this holds but in general some translation is needed here.
-    auto const& gc = *lar::providerFrom<geo::Geometry>();
-    auto nchans = gc.Nchannels();
+  if (m_misconfig_channel_policy) {
+    const auto& esvc = art::ServiceHandle<lariov::ElectronicsCalibService const>()->GetProvider();
 
-
-    if (m_bad_channel_policy) {
-	auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
-
-	std::vector<int> bad_channels;
-	for(size_t ich=0; ich<nchans; ++ich) {
-	    if (csvc.IsBad(event.time().value(), ich)) {
-		bad_channels.push_back(ich);
-	    }
-	}
-	OmniChannelNoiseDB::set_bad_channels(bad_channels);
+    std::vector<int> mc_channels;
+    for (size_t ich = 0; ich < nchans; ++ich) {
+      if (esvc.ExtraInfo(ich).GetBoolData("is_misconfigured")) { mc_channels.push_back(ich); }
     }
-
-    if (m_misconfig_channel_policy) {
-	const auto& esvc = art::ServiceHandle<lariov::ElectronicsCalibService const>()->GetProvider();
-
-	std::vector<int> mc_channels;
-	for(size_t ich=0; ich<nchans; ++ich) {
-	    if (esvc.ExtraInfo(ich).GetBoolData("is_misconfigured")) {
-		mc_channels.push_back(ich);
-	    }
-	}
-	OmniChannelNoiseDB::set_misconfigured(mc_channels, m_fgstgs[0], m_fgstgs[1], m_fgstgs[2], m_fgstgs[3]);
-    }
+    OmniChannelNoiseDB::set_misconfigured(
+      mc_channels, m_fgstgs[0], m_fgstgs[1], m_fgstgs[2], m_fgstgs[3]);
+  }
 }
-
 
 wcls::ChannelNoiseDB::OverridePolicy_t wcls::ChannelNoiseDB::parse_policy(const Configuration& jpol)
 {
-    if (jpol.empty()) {
-	THROW(ValueError() << errmsg{"ChannelNoiseDB: empty override policy given"});
-    }
+  if (jpol.empty()) {
+    THROW(ValueError() << errmsg{"ChannelNoiseDB: empty override policy given"});
+  }
 
-    std::string pol = jpol.asString();
+  std::string pol = jpol.asString();
 
-    if (pol == "union") {
-	return kUnion;
-    }
+  if (pol == "union") { return kUnion; }
 
-    if (pol == "replace") {
-	return kReplace;
-    }
+  if (pol == "replace") { return kReplace; }
 
-    THROW(ValueError() << errmsg{"ChannelNoiseDB: unknown override policy given: " + pol});
+  THROW(ValueError() << errmsg{"ChannelNoiseDB: unknown override policy given: " + pol});
 }
 
 void wcls::ChannelNoiseDB::configure(const WireCell::Configuration& cfg)
 {
-    // forward
-    OmniChannelNoiseDB::configure(cfg);
+  // forward
+  OmniChannelNoiseDB::configure(cfg);
 
-    auto jbc = cfg["bad_channel"];
-    if (!jbc.empty()) {
-	m_bad_channel_policy = parse_policy(jbc["policy"]);
-    }
+  auto jbc = cfg["bad_channel"];
+  if (!jbc.empty()) { m_bad_channel_policy = parse_policy(jbc["policy"]); }
 
-    auto jmc = cfg["misconfig_channel"];
-    if (!jmc.empty()) {
-	m_misconfig_channel_policy = parse_policy(jmc["policy"]);
+  auto jmc = cfg["misconfig_channel"];
+  if (!jmc.empty()) {
+    m_misconfig_channel_policy = parse_policy(jmc["policy"]);
 
-	// stash this for later
-	m_fgstgs[0] = jmc["from"]["gain"].asDouble();
-	m_fgstgs[1] = jmc["from"]["shaping"].asDouble();
-	m_fgstgs[2] = jmc["to"]["gain"].asDouble();
-	m_fgstgs[3] = jmc["to"]["shaping"].asDouble();
-    }
+    // stash this for later
+    m_fgstgs[0] = jmc["from"]["gain"].asDouble();
+    m_fgstgs[1] = jmc["from"]["shaping"].asDouble();
+    m_fgstgs[2] = jmc["to"]["gain"].asDouble();
+    m_fgstgs[3] = jmc["to"]["shaping"].asDouble();
+  }
 }
-
-
 
 // Local Variables:
 // mode: c++

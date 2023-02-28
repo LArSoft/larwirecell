@@ -29,14 +29,12 @@ wcls::WireCellToolkit::WireCellToolkit(fhicl::ParameterSet const& pset, art::Pro
 }
 wcls::WireCellToolkit::~WireCellToolkit() {}
 
-void
-wcls::WireCellToolkit::produce(art::Event& evt, art::ProcessingFrame const&)
+void wcls::WireCellToolkit::produce(art::Event& evt, art::ProcessingFrame const&)
 {
   m_wcls->process(evt);
 }
 
-void
-wcls::WireCellToolkit::reconfigure(fhicl::ParameterSet const& pset)
+void wcls::WireCellToolkit::reconfigure(fhicl::ParameterSet const& pset)
 {
   auto const& wclsPS = pset.get<fhicl::ParameterSet>("wcls_main");
   m_wcls = art::make_tool<wcls::MainTool>(wclsPS);

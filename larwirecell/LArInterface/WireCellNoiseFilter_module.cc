@@ -68,8 +68,7 @@ namespace noisefilteralg {
   WireCellNoiseFilter::~WireCellNoiseFilter() {}
 
   //-------------------------------------------------------------------
-  void
-  WireCellNoiseFilter::reconfigure(fhicl::ParameterSet const& pset)
+  void WireCellNoiseFilter::reconfigure(fhicl::ParameterSet const& pset)
   {
     fDigitModuleLabel = pset.get<std::string>("DigitModuleLabel", "daq");
     fDoNoiseFiltering = pset.get<bool>("DoNoiseFiltering", true);
@@ -78,8 +77,7 @@ namespace noisefilteralg {
   }
 
   //-------------------------------------------------------------------
-  void
-  WireCellNoiseFilter::produce(art::Event& evt)
+  void WireCellNoiseFilter::produce(art::Event& evt)
   {
     // Recover services we will need
     const lariov::DetPedestalProvider& pedestalValues =
@@ -132,10 +130,9 @@ namespace noisefilteralg {
     evt.put(std::move(filteredRawDigit));
   }
 
-  void
-  WireCellNoiseFilter::DoNoiseFilter(art::Event const& e,
-                                     const std::vector<raw::RawDigit>& inputWaveforms,
-                                     std::vector<raw::RawDigit>& outputWaveforms) const
+  void WireCellNoiseFilter::DoNoiseFilter(art::Event const& e,
+                                          const std::vector<raw::RawDigit>& inputWaveforms,
+                                          std::vector<raw::RawDigit>& outputWaveforms) const
   {
     auto const runNum = e.run();
 
@@ -147,8 +144,7 @@ namespace noisefilteralg {
     const lariov::ElectronicsCalibProvider& elec_provider =
       art::ServiceHandle<lariov::ElectronicsCalibService const>()->GetProvider();
     const geo::GeometryCore& geometry = *lar::providerFrom<geo::Geometry>();
-    auto const clock_data =
-      art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(e);
+    auto const clock_data = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(e);
 
     const unsigned int n_channels = inputWaveforms.size();
 
