@@ -12,19 +12,17 @@
 #  buildtool [-I /install/path] -bt[i] -jN
 # ======================================================================
 
-cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(larwirecell VERSION 09.02.13.01 LANGUAGES CXX)
+find_package(cetmodules REQUIRED)
+project(larwirecell VERSION 09.11.02 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
-find_package(cetbuildtools REQUIRED)
-
-list(APPEND CMAKE_MODULE_PATH $ENV{CANVAS_ROOT_IO_DIR}/Modules $ENV{ART_DIR}/Modules)
 
 include(CetCMakeEnv)
 cet_cmake_env()
 
-set_install_root()
+cet_cmake_module_directories(Modules)
 
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
@@ -32,46 +30,33 @@ cet_set_compiler_flags(DIAGS CAUTIOUS
   EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs
 )
 
-cet_report_compiler_flags()
+cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 
-# these are minimum required versions, not the actual product versions
-find_ups_product( larcore )
-find_ups_product( lardata )
-find_ups_product( larevt )
-find_ups_product( lardataobj )
-find_ups_product( lardataalg )
-find_ups_product( larcoreobj )
-find_ups_product( larcorealg )
-find_ups_product( art )
-find_ups_product(art_root_io)
+find_package(art REQUIRED EXPORT)
+find_package(ROOT COMPONENTS Core REQUIRED EXPORT)
 
-find_ups_product( jsoncpp )
-find_ups_product( jsonnet )
-find_ups_product( eigen )
-find_ups_product( spdlog )
-find_ups_product( wirecell )
+find_package(larcore REQUIRED EXPORT)
+find_package(lardata REQUIRED EXPORT)
+find_package(larevt REQUIRED EXPORT)
+find_package(lardataobj REQUIRED EXPORT)
+find_package(lardataalg REQUIRED EXPORT)
+find_package(larcoreobj REQUIRED EXPORT)
+find_package(larcorealg REQUIRED EXPORT)
 
-
-cet_find_library( WIRECELL_SIGPROC_LIB NAMES WireCellSigProc PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_GEN_LIB NAMES WireCellGen PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_IFACE_LIB NAMES WireCellIface PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_UTIL_LIB NAMES WireCellUtil PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-cet_find_library( WIRECELL_APPS_LIB NAMES WireCellApps PATHS ENV WIRECELL_LIB NO_DEFAULT_PATH )
-set(WIRECELL_LIBS WIRECELL_APPS_LIB WIRECELL_SIGPROC_LIB WIRECELL_IFACE_LIB WIRECELL_UTIL_LIB WIRECELL_GEN_LIB)
-
-cet_find_library( JSONCPP NAMES jsoncpp PATHS ENV JSONCPP_LIB NO_DEFAULT_PATH )
+find_package(WireCell REQUIRED EXPORT)
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)
-include(ArtMake)
+include(CetMake)
 include(BuildPlugins)
+
+add_subdirectory(Modules)
 
 # sources
 add_subdirectory(larwirecell)
 
 # ups - table and config files
-add_subdirectory(ups)
 
 # packaging utility
-include(UseCPack)
 
+cet_cmake_config()

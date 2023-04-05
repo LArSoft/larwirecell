@@ -128,10 +128,10 @@ namespace {
     fNcryostats = fGeom->Ncryostats(); // 1
 
     fNTPC = fGeom->NTPC();
-    for (int i = 0; i < fNTPC; i++) {
-      fTPC_x.push_back(fGeom->DetHalfWidth(i) * 2);
-      fTPC_y.push_back(fGeom->DetHalfHeight(i) * 2);
-      fTPC_z.push_back(fGeom->DetLength(i));
+    for (auto const& tpc : fGeom->Iterate<geo::TPCGeo>()) {
+      fTPC_x.push_back(tpc.HalfWidth() * 2);
+      fTPC_y.push_back(tpc.HalfHeight() * 2);
+      fTPC_z.push_back(tpc.Length());
     }
 
     //  fNplanes = fGeom->Nplanes();
@@ -186,7 +186,7 @@ namespace {
           channel_ends[channel_ends.size() - 1] = i;
         }
 
-        fGeom->WireEndPoints(cstat, tpc, plane, wire, xyzStart, xyzEnd);
+        fGeom->WireEndPoints(wid, xyzStart, xyzEnd);
 
         out << i << "\t" << cstat * 2 + tpc << "\t" << plane << "\t" << wire << "\t";
         for (int i = 0; i < 3; i++) {
@@ -214,18 +214,16 @@ namespace {
     //     cout << "\tTPC " << i << ": " << fTPC_x[i] << ", " << fTPC_y[i] << ", " << fTPC_z[i] << endl;
     // }
     cout << "TPC (Active) Locations: " << endl;
-    for (geo::TPCGeo const& TPC : fGeom->IterateTPCs()) {
+    for (geo::TPCGeo const& TPC : fGeom->Iterate<geo::TPCGeo>()) {
       // get center in world coordinates
-      double origin[3] = {0.};
-      double center[3] = {0.};
-      TPC.LocalToWorld(origin, center);
+      auto const center = TPC.GetCenter();
       double tpcDim[3] = {TPC.ActiveHalfWidth(), TPC.ActiveHalfHeight(), 0.5 * TPC.ActiveLength()};
-      double xmin = center[0] - tpcDim[0];
-      double xmax = center[0] + tpcDim[0];
-      double ymin = center[1] - tpcDim[1];
-      double ymax = center[1] + tpcDim[1];
-      double zmin = center[2] - tpcDim[2];
-      double zmax = center[2] + tpcDim[2];
+      double xmin = center.X() - tpcDim[0];
+      double xmax = center.X() + tpcDim[0];
+      double ymin = center.Y() - tpcDim[1];
+      double ymax = center.Y() + tpcDim[1];
+      double zmin = center.Z() - tpcDim[2];
+      double zmax = center.Z() + tpcDim[2];
       cout << "\t[" << xmin << ", " << xmax << ", " << ymin << ", " << ymax << ", " << zmin << ", "
            << zmax << "]" << endl;
     } // for all TPC

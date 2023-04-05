@@ -18,18 +18,23 @@
 
 #include "lardataobj/RawData/RawDigit.h"
 
-#include "WireCellUtil/Units.h"
-
-#include "WireCellIface/SimpleFrame.h"
-#include "WireCellIface/SimpleTrace.h"
+#include "WireCellAux/DftTools.h"
+#include "WireCellAux/SimpleFrame.h"
+#include "WireCellAux/SimpleTrace.h"
+#include "WireCellIface/IDFT.h"
 #include "WireCellSigProc/Microboone.h"
 #include "WireCellSigProc/OmnibusNoiseFilter.h"
 #include "WireCellSigProc/SimpleChannelNoiseDB.h"
+#include "WireCellUtil/NamedFactory.h"
+#include "WireCellUtil/Units.h"
 
 #include <numeric> // iota
 #include <string>
 
 using namespace WireCell;
+using WireCell::Aux::SimpleFrame;
+using WireCell::Aux::SimpleTrace;
+using WireCell::Aux::DftTools::fwd_r2c;
 
 namespace noisefilteralg {
 
@@ -49,6 +54,7 @@ namespace noisefilteralg {
 
     //******************************
     //Variables Taken from FHICL File
+    IDFT::pointer m_dft;           // revised FFT API
     std::string fDigitModuleLabel; // label for rawdigit module
     bool fDoNoiseFiltering;        // Allows for a "pass through" mode
     size_t fNumTicksToDropFront;   // If we are truncating then this is non-zero
@@ -70,6 +76,8 @@ namespace noisefilteralg {
   //-------------------------------------------------------------------
   void WireCellNoiseFilter::reconfigure(fhicl::ParameterSet const& pset)
   {
+    auto dft_tn = pset.get<std::string>("dft", "FftwDFT");
+    m_dft = Factory::find_tn<IDFT>(dft_tn);
     fDigitModuleLabel = pset.get<std::string>("DigitModuleLabel", "daq");
     fDoNoiseFiltering = pset.get<bool>("DoNoiseFiltering", true);
     fNumTicksToDropFront = pset.get<size_t>("NumTicksToDropFront", 2400);
@@ -154,8 +162,9 @@ namespace noisefilteralg {
     const size_t windowSize = std::min(fWindowSize, nsamples);
 
     // Q&D microboone channel map
-    std::vector<int> uchans(geometry.Nwires(0)), vchans(geometry.Nwires(1)),
-      wchans(geometry.Nwires(2));
+    geo::TPCID const tpcid{0, 0};
+    std::vector<int> uchans(geometry.Nwires({tpcid, 0})), vchans(geometry.Nwires({tpcid, 1})),
+      wchans(geometry.Nwires({tpcid, 2}));
     const int nchans = uchans.size() + vchans.size() + wchans.size();
     std::iota(uchans.begin(), uchans.end(), 0);
     std::iota(vchans.begin(), vchans.end(), vchans.size());
@@ -251,8 +260,10 @@ namespace noisefilteralg {
       u_resp.at(i) = u_resp_array[i];
       v_resp.at(i) = v_resp_array[i];
     }
-    WireCell::Waveform::compseq_t u_resp_freq = WireCell::Waveform::dft(u_resp);
-    WireCell::Waveform::compseq_t v_resp_freq = WireCell::Waveform::dft(v_resp);
+    // WireCell::Waveform::compseq_t u_resp_freq = WireCell::Waveform::dft(u_resp);
+    // WireCell::Waveform::compseq_t v_resp_freq = WireCell::Waveform::dft(v_resp);
+    WireCell::Waveform::compseq_t u_resp_freq = fwd_r2c(m_dft, u_resp);
+    WireCell::Waveform::compseq_t v_resp_freq = fwd_r2c(m_dft, v_resp);
 
     int uplane_time_shift = 79;
     int vplane_time_shift = 82;
@@ -400,12 +411,12 @@ namespace noisefilteralg {
       });
 
       unsigned int chan = inputWaveforms.at(ich).Channel();
-      WireCell::SimpleTrace* st = new WireCell::SimpleTrace(chan, 0.0, charges);
+      SimpleTrace* st = new SimpleTrace(chan, 0.0, charges);
       traces.push_back(WireCell::ITrace::pointer(st));
     }
 
     //Load traces into frame
-    WireCell::SimpleFrame* sf = new WireCell::SimpleFrame(0, 0, traces);
+    SimpleFrame* sf = new SimpleFrame(0, 0, traces);
     WireCell::IFrame::pointer frame = WireCell::IFrame::pointer(sf);
     WireCell::IFrame::pointer quiet = NULL;
 

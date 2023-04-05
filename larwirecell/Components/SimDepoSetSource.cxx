@@ -1,12 +1,8 @@
-/** The WC/LS sim depo source adapts larsoft SimEnergyDeposit to WCT's IDepos.
-
-    Note, this WC/LS file unusually verbose.  Besides just data
-    conversion, additional WCT guts are exposed allow optional
-    application of WCT ionization/recombination models, or to rely on
-    the depo provider to already provide depo in units of #electrons.
+/** The WC/LS sim depo set source adapts larsoft SimEnergyDeposit to WCT's IDepoSets.
+    Modified from the SimDepoSource for IDepoSet for better efficiency
 */
 
-#include "SimDepoSource.h"
+#include "SimDepoSetSource.h"
 
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -14,35 +10,38 @@
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 
 #include "WireCellAux/SimpleDepo.h"
+#include "WireCellAux/SimpleDepoSet.h"
 #include "WireCellIface/IRecombinationModel.h"
 #include "WireCellUtil/NamedFactory.h"
 #include "WireCellUtil/String.h"
 #include "WireCellUtil/Units.h"
 
-WIRECELL_FACTORY(wclsSimDepoSource,
-                 wcls::SimDepoSource,
+WIRECELL_FACTORY(wclsSimDepoSetSource,
+                 wcls::SimDepoSetSource,
                  wcls::IArtEventVisitor,
-                 WireCell::IDepoSource,
+                 WireCell::IDepoSetSource,
                  WireCell::IConfigurable)
 
 using WireCell::Aux::SimpleDepo;
+using WireCell::Aux::SimpleDepoSet;
 
 namespace units = WireCell::units;
 
 namespace wcls {
-  namespace bits {
 
-    // There is more than one way to make ionization electrons.
-    // These adapters erase these differences.
-    class DepoAdapter {
-    public:
-      virtual ~DepoAdapter() {}
-      virtual double operator()(const sim::SimEnergyDeposit& sed) const = 0;
-    };
+  // There is more than one way to make ionization electrons.
+  // These adapters erase these differences.
+  class SimDepoSetSource::DepoAdapter {
+  public:
+    virtual ~DepoAdapter() {}
+    virtual double operator()(const sim::SimEnergyDeposit& sed) const = 0;
+  };
+
+  namespace bits {
 
     // This takes number of electrons directly, and applies a
     // multiplicative scale.
-    class ElectronsAdapter : public DepoAdapter {
+    class ElectronsAdapter : public SimDepoSetSource::DepoAdapter {
       double m_scale;
 
     public:
@@ -56,7 +55,7 @@ namespace wcls {
 
     // This one takes a recombination model which only requires dE
     // (ie, assumes MIP).
-    class PointAdapter : public DepoAdapter {
+    class PointAdapter : public SimDepoSetSource::DepoAdapter {
       WireCell::IRecombinationModel::pointer m_model;
       double m_scale;
 
@@ -73,7 +72,7 @@ namespace wcls {
     };
 
     // This one takes a recombination which is a function of both dE and dX.
-    class StepAdapter : public DepoAdapter {
+    class StepAdapter : public SimDepoSetSource::DepoAdapter {
       WireCell::IRecombinationModel::pointer m_model;
       double m_scale;
 
@@ -94,9 +93,9 @@ namespace wcls {
 
 using namespace wcls;
 
-SimDepoSource::SimDepoSource() : m_adapter(nullptr) {}
+SimDepoSetSource::SimDepoSetSource() : m_count(0), m_adapter(nullptr) {}
 
-SimDepoSource::~SimDepoSource()
+SimDepoSetSource::~SimDepoSetSource()
 {
   if (m_adapter) {
     delete m_adapter;
@@ -104,7 +103,7 @@ SimDepoSource::~SimDepoSource()
   }
 }
 
-WireCell::Configuration SimDepoSource::default_configuration() const
+WireCell::Configuration SimDepoSetSource::default_configuration() const
 {
   WireCell::Configuration cfg;
 
@@ -122,7 +121,7 @@ WireCell::Configuration SimDepoSource::default_configuration() const
 
   return cfg;
 }
-void SimDepoSource::configure(const WireCell::Configuration& cfg)
+void SimDepoSetSource::configure(const WireCell::Configuration& cfg)
 {
   if (m_adapter) {
     delete m_adapter;
@@ -140,7 +139,7 @@ void SimDepoSource::configure(const WireCell::Configuration& cfg)
   else {
     auto model = WireCell::Factory::lookup_tn<WireCell::IRecombinationModel>(model_tn);
     if (!model) {
-      std::cerr << "wcls::SimDepoSource: unknown recombination model: \"" << model_tn << "\"\n";
+      std::cerr << "wcls::SimDepoSetSource: unknown recombination model: \"" << model_tn << "\"\n";
       return; // I should throw something here!
     }
     if (model_type == "MipRecombination") {
@@ -155,14 +154,14 @@ void SimDepoSource::configure(const WireCell::Configuration& cfg)
   m_assnTag = cfg["assn_art_tag"].asString();
 }
 
-void SimDepoSource::visit(art::Event& event)
+void SimDepoSetSource::visit(art::Event& event)
 {
   art::Handle<std::vector<sim::SimEnergyDeposit>> sedvh;
 
   bool okay = event.getByLabel(m_inputTag, sedvh);
   if (!okay) {
     std::string msg =
-      "SimDepoSource failed to get sim::SimEnergyDeposit from art tag: " + m_inputTag.encode();
+      "SimDepoSetSource failed to get sim::SimEnergyDeposit from art tag: " + m_inputTag.encode();
     std::cerr << msg << std::endl;
     THROW(WireCell::RuntimeError() << WireCell::errmsg{msg});
   }
@@ -170,11 +169,11 @@ void SimDepoSource::visit(art::Event& event)
 
   const size_t ndepos = sedvh->size();
 
-  std::cerr << "SimDepoSource got " << ndepos << " depos from art tag \"" << m_inputTag
+  std::cerr << "SimDepoSetSource got " << ndepos << " depos from art tag \"" << m_inputTag
             << "\" returns: " << (okay ? "okay" : "fail") << std::endl;
 
   if (!m_depos.empty()) {
-    std::cerr << "SimDepoSource dropping " << m_depos.size() << " unused, prior depos\n";
+    std::cerr << "SimDepoSetSource dropping " << m_depos.size() << " unused, prior depos\n";
     m_depos.clear();
   }
 
@@ -185,18 +184,18 @@ void SimDepoSource::visit(art::Event& event)
     okay = event.getByLabel(m_assnTag, assn_sedvh);
     if (!okay) {
       std::string msg =
-        "SimDepoSource failed to get sim::SimEnergyDeposit from art tag: " + m_assnTag.encode();
+        "SimDepoSetSource failed to get sim::SimEnergyDeposit from art tag: " + m_assnTag.encode();
       std::cerr << msg << std::endl;
       THROW(WireCell::RuntimeError() << WireCell::errmsg{msg});
     }
     else {
-      std::cout << "Larwirecell::SimDepoSource got " << assn_sedvh->size()
+      std::cout << "Larwirecell::SimDepoSetSource got " << assn_sedvh->size()
                 << " associated depos from " << m_assnTag << std::endl;
       assn_sedv.insert(assn_sedv.end(), assn_sedvh->begin(), assn_sedvh->end());
     }
     // safty check for the associated SED
     if (ndepos != assn_sedv.size()) {
-      std::string msg = "Larwirecell::SimDepoSource Inconsistent size of SimDepoSources";
+      std::string msg = "Larwirecell::SimDepoSetSource Inconsistent size of SimDepoSetSources";
       std::cerr << msg << std::endl;
       THROW(WireCell::RuntimeError() << WireCell::errmsg{msg});
     }
@@ -237,6 +236,10 @@ void SimDepoSource::visit(art::Event& event)
       WireCell::IDepo::pointer depo =
         std::make_shared<SimpleDepo>(wt, wpt, wq, assn_depo, 0.0, 0.0, wid, pdg, we);
       m_depos.push_back(depo);
+      // std::cerr << ind << ": t1=" << wt1/units::us << "us,"
+      //           << " r1=" << wpt1/units::cm << "cm, "
+      //           << " q1=" << wq1
+      //           << " e1=" << we1/units::MeV << "\n";
     }
   }
 
@@ -249,18 +252,18 @@ void SimDepoSource::visit(art::Event& event)
 
   // don't trust user to honor time ordering.
   std::sort(m_depos.begin(), m_depos.end(), WireCell::ascending_time);
-  std::cerr << "SimDepoSource: ready with " << m_depos.size() << " depos spanning: ["
+  std::cerr << "SimDepoSetSource: ready with " << m_depos.size() << " depos spanning: ["
             << m_depos.front()->time() / units::us << ", " << m_depos.back()->time() / units::us
             << "]us\n";
-  m_depos.push_back(nullptr); // EOS marker
 }
 
-bool SimDepoSource::operator()(WireCell::IDepo::pointer& out)
+bool SimDepoSetSource::operator()(WireCell::IDepoSet::pointer& out)
 {
   if (m_depos.empty()) { return false; }
 
-  out = m_depos.front();
-  m_depos.pop_front();
+  out = std::make_shared<SimpleDepoSet>(m_count, m_depos);
+  m_depos.clear();
+  ++m_count;
 
   return true;
 }

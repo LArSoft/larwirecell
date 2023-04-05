@@ -1,11 +1,19 @@
-# This is what's needed for building he WireCellLarsoft WCT component
-# plugin library.
-art_make(
-  MODULE_LIBRARIES
-    lardataobj_RawData
-    lardataobj_RecoBase
-    ${WIRECELL_LIBS}
-)
+cet_build_plugin(BlipMaker art::EDProducer
+  LIBRARIES PRIVATE
+  lardataobj::Simulation)
+
+cet_build_plugin(EventButcher art::EDProducer
+  LIBRARIES PRIVATE
+  lardataobj::RecoBase
+  lardataobj::RawData
+  canvas::canvas
+  art::Persistency_Common
+  )
+
+cet_build_plugin(WireCellToolkit art::SharedProducer
+  LIBRARIES PRIVATE
+  art::Utilities
+  )
 
 add_subdirectory(Geometry)
 

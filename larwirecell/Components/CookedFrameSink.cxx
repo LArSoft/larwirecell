@@ -1,6 +1,7 @@
 #include "CookedFrameSink.h"
 //#include "art/Framework/Principal/Handle.h"
 
+#include "larcore/CoreUtils/ServiceUtil.h"
 #include "larcore/Geometry/Geometry.h"
 #include "lardataobj/RecoBase/Wire.h"
 

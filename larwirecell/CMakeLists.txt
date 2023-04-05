@@ -1,6 +1,3 @@
-
-include_directories($ENV{EIGEN_INC})
-
 add_subdirectory(Interfaces)
 add_subdirectory(Components)
 add_subdirectory(Tools)
