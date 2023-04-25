@@ -9,6 +9,7 @@ cet_make_library(LIBRARY_NAME WireCellLarsoft
   ChannelSelectorDB.cxx
   CookedFrameSink.cxx
   CookedFrameSource.cxx
+  DepoSetSimChannelSink.cxx
   FrameSaver.cxx
   LazyFrameSource.cxx
   MultiChannelNoiseDB.cxx
