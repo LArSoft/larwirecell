@@ -4,6 +4,8 @@
 
 #include "WireCellUtil/NamedFactory.h"
 
+#include <unordered_set>
+
 WIRECELL_FACTORY(wclsMultiChannelNoiseDB,
                  wcls::MultiChannelNoiseDB,
                  wcls::IArtEventVisitor,
