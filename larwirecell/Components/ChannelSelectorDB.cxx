@@ -46,7 +46,9 @@ void wcls::ChannelSelectorDB::visit(art::Event& event)
 
     std::vector<int> mc_channels;
     for (size_t ich = 0; ich < nchans; ++ich) {
-      if (esvc.ExtraInfo(ich).GetBoolData("is_misconfigured")) { m_miscfg_channels.push_back(ich); }
+      if (esvc.ExtraInfo(event.time().value(), ich).GetBoolData("is_misconfigured")) {
+        m_miscfg_channels.push_back(ich);
+      }
     }
   }
 }

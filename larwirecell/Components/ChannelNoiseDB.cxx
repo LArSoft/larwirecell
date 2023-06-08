@@ -80,7 +80,9 @@ void wcls::ChannelNoiseDB::visit(art::Event& event)
 
     std::vector<int> mc_channels;
     for (size_t ich = 0; ich < nchans; ++ich) {
-      if (esvc.ExtraInfo(ich).GetBoolData("is_misconfigured")) { mc_channels.push_back(ich); }
+      if (esvc.ExtraInfo(event.time().value(), ich).GetBoolData("is_misconfigured")) {
+        mc_channels.push_back(ich);
+      }
     }
     OmniChannelNoiseDB::set_misconfigured(
       mc_channels, m_fgstgs[0], m_fgstgs[1], m_fgstgs[2], m_fgstgs[3]);

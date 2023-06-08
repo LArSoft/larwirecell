@@ -176,7 +176,7 @@ namespace noisefilteralg {
     // Q&D miss-configured channel database
     std::vector<int> miscfgchan;
     for (int channelIdx = 0; channelIdx < nchans; channelIdx++) {
-      if (elec_provider.ExtraInfo(channelIdx).GetBoolData("is_misconfigured")) {
+      if (elec_provider.ExtraInfo(e.time().value(), channelIdx).GetBoolData("is_misconfigured")) {
         miscfgchan.push_back(channelIdx);
       }
     }
