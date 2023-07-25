@@ -262,7 +262,7 @@ bool DepoSetSimChannelSink::operator()(const WireCell::IDepoSet::pointer& indepo
 {
   outdepos = indepos;
 
-  for (const auto indepo : *(indepos->depos())) {
+  for (const auto& indepo : *(indepos->depos())) {
     if (indepo) { save_as_simchannel(indepo); }
   }
 

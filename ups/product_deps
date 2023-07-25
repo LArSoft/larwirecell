@@ -247,8 +247,8 @@ fcldir	product_dir	fcl
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larevt		v09_08_00
-wirecell	v0_24_1a
+larevt		v09_09_01
+wirecell	v0_24_1b
 cetmodules	v3_20_00	-	only_for_build
 end_product_list
 ####################################
@@ -305,10 +305,12 @@ end_product_list
 #
 ####################################
 qualifier	larevt		wirecell	notes
+c14:debug	c14:debug	c14:debug
+c14:prof	c14:prof	c14:prof
 c7:debug	c7:debug	c7:debug
 c7:prof		c7:prof		c7:prof
-e19:debug	e19:debug	e19:debug
-e19:prof	e19:prof	e19:prof
+e26:debug	e26:debug	e26:debug
+e26:prof	e26:prof	e26:prof
 e20:debug	e20:debug	e20:debug
 e20:prof	e20:prof	e20:prof
 end_qualifier_list

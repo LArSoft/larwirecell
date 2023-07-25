@@ -131,7 +131,11 @@ void SimDepoSetSource::configure(const WireCell::Configuration& cfg)
 
   std::string model_tn = WireCell::get<std::string>(cfg, "model", "");
   std::string model_type = "";
-  if (!model_tn.empty()) { WireCell::String::split(model_tn)[0]; }
+  if (!model_tn.empty()) {
+    // FIXME: Right now, the split(..)[0] is just a no-op.  Is the value supposed to be
+    // assigned to something?
+    (void)WireCell::String::split(model_tn)[0];
+  }
 
   if (model_type == "" or model_type == "electrons") {
     m_adapter = new wcls::bits::ElectronsAdapter(scale);
