@@ -271,7 +271,7 @@ void DepoFluxWriter::visit(art::Event& event)
           const double charge = std::abs(patch(pbin, tbin));
           if (charge < 1.0) { continue; }
 
-          const unsigned int tdc = tbin + toffset_bin + m_tick_offsets[iplane];
+          const unsigned int tdc = m_tbins.center(tbin)/m_tbins.binsize() + toffset_bin + m_tick_offsets[iplane];
 
           sc.AddIonizationElectrons(
             trackID, tdc, charge, xyz_cm, energy * abs(charge / depo->charge()), origTrackID);
