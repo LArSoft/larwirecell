@@ -77,6 +77,12 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   m_speed = fr.speed;
   m_origin = fr.origin;
 
+  // externally set drift speed 
+  auto ext_speed = cfg["drift_speed"];
+  if (!ext_speed.empty()) {
+    m_speed = ext_speed * units::mm / units::us;
+  }
+
   // Anode planes.
   Configuration janode_names = cfg["anodes"];
   if (janode_names.isString()) {
@@ -169,6 +175,13 @@ void DepoFluxWriter::visit(art::Event& event)
 
   std::map<unsigned int, sim::SimChannel> simchans;
 
+  // initializing the SimChannel Map 
+  for (auto& anode : m_anodes){
+    for (auto& channel : anode->channels()) {
+      simchans.try_emplace(channel, sim::SimChannel(channel));
+    }
+  }
+
   for (const auto& depo : m_depos) {
     if (!depo) continue;
 
@@ -213,7 +226,7 @@ void DepoFluxWriter::visit(art::Event& event)
       trackID = depo->id();
       if (!energy) { energy = depo->energy(); }
     }
-    if (sedvh->size()) { // IDepo::id() is index
+    if (sedvh.isValid()){
       const auto& sed = sedvh->at(trackID);
       trackID = sed.TrackID();
       origTrackID = sed.OrigTrackID();
