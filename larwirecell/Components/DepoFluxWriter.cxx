@@ -80,7 +80,7 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   // externally set drift speed 
   auto ext_speed = cfg["drift_speed"];
   if (!ext_speed.empty()) {
-    m_speed = ext_speed * units::mm / units::us;
+    m_speed = ext_speed.asDouble();
   }
 
   // Anode planes.
@@ -226,7 +226,7 @@ void DepoFluxWriter::visit(art::Event& event)
       trackID = depo->id();
       if (!energy) { energy = depo->energy(); }
     }
-    if (sedvh.isValid()){
+    if (sedvh.isValid()) { // IDepo::id() is index
       const auto& sed = sedvh->at(trackID);
       trackID = sed.TrackID();
       origTrackID = sed.OrigTrackID();
