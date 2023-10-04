@@ -78,7 +78,6 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   m_speed = fr.speed;
   m_origin = fr.origin;
 
-
   // Anode planes.
   Configuration janode_names = cfg["anodes"];
   if (janode_names.isString()) {
@@ -99,7 +98,7 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   m_sed_label = get(cfg, "sed_label", m_sed_label);
   m_debug_file = get(cfg, "debug_file", m_debug_file);
 
-  // sparsity 
+  // sparsity
   m_sparse = get(cfg, "sparse", true);
 
   // time-binning
@@ -175,8 +174,8 @@ void DepoFluxWriter::visit(art::Event& event)
   std::map<unsigned int, sim::SimChannel> simchans;
 
   // if dense, initialize SimChannels
-  if (!m_sparse){
-    for (auto& anode : m_anodes){
+  if (!m_sparse) {
+    for (auto& anode : m_anodes) {
       for (auto& channel : anode->channels()) {
         simchans.try_emplace(channel, sim::SimChannel(channel));
       }
