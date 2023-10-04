@@ -73,6 +73,7 @@ namespace wcls {
 
     WireCell::IFrame::pointer m_frame;
     std::vector<std::string> m_frame_tags, m_summary_tags;
+    std::string m_summary_suffix;
     std::vector<double> m_frame_scale, m_summary_scale;
 
     typedef std::function<float(const std::vector<float>& tsvals)> summarizer_function;
