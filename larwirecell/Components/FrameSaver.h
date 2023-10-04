@@ -82,6 +82,7 @@ namespace wcls {
     int m_nticks;
     bool m_digitize, m_sparse, m_skipframe;
     Json::Value m_cmms, m_pedestal_mean;
+    std::string m_cmm_masks_suffix, m_cmm_channels_suffix;
     double m_pedestal_sigma;
 
     void save_as_raw(art::Event& event);

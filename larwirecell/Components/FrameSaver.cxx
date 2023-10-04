@@ -94,6 +94,8 @@ WireCell::Configuration FrameSaver::default_configuration() const
 
   // Names of channel mask maps to save, if any.
   cfg["chanmaskmaps"] = Json::arrayValue;
+  cfg["cmm_masks_suffix"] = "masks";
+  cfg["cmm_channels_suffix"] = "channels";
 
   return cfg;
 }
@@ -136,6 +138,8 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
   m_skipframe = get(cfg, "skip_frame", false);
 
   m_cmms = cfg["chanmaskmaps"];
+  m_cmm_masks_suffix = cfg["cmm_masks_suffix"].asString();
+  m_cmm_channels_suffix = cfg["cmm_channels_suffix"].asString();
 
   m_pedestal_mean = cfg["pedestal_mean"];
   m_pedestal_sigma = get(cfg, "pedestal_sigma", 0.0);
@@ -217,8 +221,8 @@ void FrameSaver::produces(art::ProducesCollector& collector)
     const std::string cmm_name = cmm.asString();
     std::cerr << "wclsFrameSaver: promising to produce channel masks named \"" << cmm_name
               << "\"\n";
-    collector.produces<channel_list>(cmm_name + "channels");
-    collector.produces<channel_masks>(cmm_name + "masks");
+    collector.produces<channel_list>(cmm_name + m_cmm_channels_suffix);
+    collector.produces<channel_masks>(cmm_name + m_cmm_masks_suffix);
   }
 }
 
@@ -499,8 +503,8 @@ void FrameSaver::save_cmms(art::Event& event)
     if (out_list->empty()) {
       std::cerr << "wclsFrameSaver: found empty channel masks for \"" << name << "\"\n";
     }
-    event.put(std::move(out_list), name + "channels");
-    event.put(std::move(out_masks), name + "masks");
+    event.put(std::move(out_list), name + m_cmm_channels_suffix);
+    event.put(std::move(out_masks), name + m_cmm_masks_suffix);
   }
 }
 
@@ -529,8 +533,8 @@ void FrameSaver::save_empty(art::Event& event)
     std::string name = jcmm.asString();
     std::unique_ptr<channel_list> out_list(new channel_list);
     std::unique_ptr<channel_masks> out_masks(new channel_masks);
-    event.put(std::move(out_list), name + "channels");
-    event.put(std::move(out_masks), name + "masks");
+    event.put(std::move(out_list), name + m_cmm_channels_suffix);
+    event.put(std::move(out_masks), name + m_cmm_masks_suffix);
   }
 }
 
