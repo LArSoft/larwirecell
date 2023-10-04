@@ -228,6 +228,9 @@ void DepoFluxWriter::visit(art::Event& event)
       if (!energy) { energy = depo->energy(); }
     }
     if (sedvh.isValid()) { // IDepo::id() is index
+      if (trackID < 0 || trackID >= (int)sedvh->size()) {
+        throw cet::exception("DepoFluxWriter") << "trackID= " << trackID << " is out of bounds!\n";
+      }
       const auto& sed = sedvh->at(trackID);
       trackID = sed.TrackID();
       origTrackID = sed.OrigTrackID();
