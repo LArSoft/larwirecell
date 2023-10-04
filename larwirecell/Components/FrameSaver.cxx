@@ -208,7 +208,7 @@ void FrameSaver::produces(art::ProducesCollector& collector)
   }
   for (auto tag : m_summary_tags) {
     std::cerr << "wclsFrameSaver: promising to produce channel summary named \"" << tag << "\"\n";
-    collector.produces<std::vector<double>>(tag);
+    collector.produces<std::vector<double>>(tag + "summary");
   }
   for (auto cmm : m_cmms) {
     const std::string cmm_name = cmm.asString();
@@ -460,7 +460,7 @@ void FrameSaver::save_summaries(art::Event& event)
       outsum->at(chanind) = val * scale;
       ++chanind;
     }
-    event.put(std::move(outsum), tag);
+    event.put(std::move(outsum), tag + "summary");
   }
 }
 
@@ -519,7 +519,7 @@ void FrameSaver::save_empty(art::Event& event)
 
   for (auto stag : m_summary_tags) {
     std::unique_ptr<std::vector<double>> outsum(new std::vector<double>);
-    event.put(std::move(outsum), stag);
+    event.put(std::move(outsum), stag + "summary");
   }
 
   for (auto jcmm : m_cmms) {
