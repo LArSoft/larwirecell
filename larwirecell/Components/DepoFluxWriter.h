@@ -36,13 +36,13 @@ namespace wcls {
     std::vector<WireCell::IAnodePlane::pointer> m_anodes;
 
     // field_response - name of an IFieldResponse.
-    // If an external drift speed is specified, the m_speed will 
-    // be set to the external drift speed. Otherwise, the drift speed
-    // will be set to the drift speed in the field response.
     double m_speed{0}, m_origin{0};
 
     // simchan_label - name by which to save results to art::Event
     std::string m_simchan_label;
+    // sparse - whether to save all channels or only those with
+    // nonzero depo charge. Default is true. 
+    bool m_sparse;
 
     // tick - the sample time over which to integrate depo flux
     // into time bins.
