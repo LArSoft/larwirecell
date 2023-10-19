@@ -73,6 +73,7 @@ namespace wcls {
 
     WireCell::IFrame::pointer m_frame;
     std::vector<std::string> m_frame_tags, m_summary_tags;
+    std::string m_summary_suffix;
     std::vector<double> m_frame_scale, m_summary_scale;
 
     typedef std::function<float(const std::vector<float>& tsvals)> summarizer_function;
@@ -81,6 +82,7 @@ namespace wcls {
     int m_nticks;
     bool m_digitize, m_sparse, m_skipframe;
     Json::Value m_cmms, m_pedestal_mean;
+    std::string m_cmm_masks_suffix, m_cmm_channels_suffix;
     double m_pedestal_sigma;
 
     void save_as_raw(art::Event& event);

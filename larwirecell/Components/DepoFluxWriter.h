@@ -40,6 +40,9 @@ namespace wcls {
 
     // simchan_label - name by which to save results to art::Event
     std::string m_simchan_label;
+    // sparse - whether to save all channels or only those with
+    // nonzero depo charge. Default is true.
+    bool m_sparse;
 
     // tick - the sample time over which to integrate depo flux
     // into time bins.
