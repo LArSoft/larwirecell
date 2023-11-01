@@ -5,7 +5,7 @@
 
 #include "ChannelSelectorDB.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Interface/ElectronicsCalibProvider.h"
@@ -28,8 +28,7 @@ void wcls::ChannelSelectorDB::visit(art::Event& event)
   // FIXME: the current assumption in this code is that LS channel
   // numbers are identified with WCT channel IDs.  For MicroBooNE
   // this holds but in general some translation is needed here.
-  auto const& gc = *lar::providerFrom<geo::Geometry>();
-  auto nchans = gc.Nchannels();
+  auto nchans = art::ServiceHandle<geo::WireReadout const>()->Get().Nchannels();
 
   if (m_type == "bad") {
     auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();

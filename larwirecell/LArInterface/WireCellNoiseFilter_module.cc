@@ -6,7 +6,7 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
@@ -151,7 +151,7 @@ namespace noisefilteralg {
       art::ServiceHandle<lariov::DetPedestalService const>()->GetPedestalProvider();
     const lariov::ElectronicsCalibProvider& elec_provider =
       art::ServiceHandle<lariov::ElectronicsCalibService const>()->GetProvider();
-    const geo::GeometryCore& geometry = *lar::providerFrom<geo::Geometry>();
+    auto const& wireReadoutGeom = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clock_data = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(e);
 
     const unsigned int n_channels = inputWaveforms.size();
@@ -163,8 +163,8 @@ namespace noisefilteralg {
 
     // Q&D microboone channel map
     geo::TPCID const tpcid{0, 0};
-    std::vector<int> uchans(geometry.Nwires({tpcid, 0})), vchans(geometry.Nwires({tpcid, 1})),
-      wchans(geometry.Nwires({tpcid, 2}));
+    std::vector<int> uchans(wireReadoutGeom.Nwires({tpcid, 0})),
+      vchans(wireReadoutGeom.Nwires({tpcid, 1})), wchans(wireReadoutGeom.Nwires({tpcid, 2}));
     const int nchans = uchans.size() + vchans.size() + wchans.size();
     std::iota(uchans.begin(), uchans.end(), 0);
     std::iota(vchans.begin(), vchans.end(), vchans.size());
