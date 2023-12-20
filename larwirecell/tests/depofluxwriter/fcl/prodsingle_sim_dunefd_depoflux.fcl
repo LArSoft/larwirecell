@@ -1,0 +1,13 @@
+#include "prodsingle_sim_dunefd.fcl"
+physics.producers.tpcrawdecoder.wcls_main.configs: [
+  "pgrapher/experiment/dune10kt-1x2x6/wcls-sim-drift-depoflux.jsonnet"
+]
+
+physics.producers.tpcrawdecoder.wcls_main.inputers: [
+   "wclsSimDepoSetSource:"
+]
+
+physics.producers.tpcrawdecoder.wcls_main.outputers: [
+  "wclsDepoFluxWriter:postdrift",
+  "wclsFrameSaver:simdigits"
+]

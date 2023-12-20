@@ -7,3 +7,6 @@ cut
 *.backup
 *.log
 *.root
+*.tex
+latexmk-out
+auto

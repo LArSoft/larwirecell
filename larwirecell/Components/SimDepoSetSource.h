@@ -43,6 +43,19 @@ namespace wcls {
 
     art::InputTag m_inputTag;
     art::InputTag m_assnTag; // associated input
+
+    // Config: id_is_track - If false, IDepo::id() stores index into
+    // SimEnergyDeposit vector element from which the IDepo was made.
+    // If true the IDepo::id() stores the SimEnergyDeposit::TrackID().
+    // Default is true.
+    bool m_id_is_track{true};
+
+    std::string m_debug_file{""};
   };
 }
 #endif
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 2
+// End:

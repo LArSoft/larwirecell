@@ -9,14 +9,17 @@ cet_make_library(LIBRARY_NAME WireCellLarsoft
   ChannelSelectorDB.cxx
   CookedFrameSink.cxx
   CookedFrameSource.cxx
-  DepoSetSimChannelSink.cxx
+  DepoFluxWriter.cxx
   FrameSaver.cxx
   LazyFrameSource.cxx
   MultiChannelNoiseDB.cxx
   RawFrameSource.cxx
-  SimChannelSink.cxx
   SimDepoSetSource.cxx
   SimDepoSource.cxx
+  # vvv obsolete vvv
+  DepoSetSimChannelSink.cxx
+  SimChannelSink.cxx
+  # ^^^ obsolete ^^^
   LIBRARIES
   PUBLIC
   larwirecell::IArtEventVisitor

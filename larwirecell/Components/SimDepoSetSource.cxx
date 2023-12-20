@@ -16,12 +16,15 @@
 #include "WireCellUtil/String.h"
 #include "WireCellUtil/Units.h"
 
+#include "DebugDumper.h" // for debug
+
 WIRECELL_FACTORY(wclsSimDepoSetSource,
                  wcls::SimDepoSetSource,
                  wcls::IArtEventVisitor,
                  WireCell::IDepoSetSource,
                  WireCell::IConfigurable)
 
+using WireCell::get;
 using WireCell::Aux::SimpleDepo;
 using WireCell::Aux::SimpleDepoSet;
 
@@ -119,8 +122,14 @@ WireCell::Configuration SimDepoSetSource::default_configuration() const
   cfg["art_tag"] = "";      // eg, "plopper:bogus"
   cfg["assn_art_tag"] = ""; // eg, "largeant"
 
+  cfg["id_is_track"] = m_id_is_track;
+
+  // Provide file name into which validation text is dumped.
+  cfg["debug_file"] = m_debug_file;
+
   return cfg;
 }
+
 void SimDepoSetSource::configure(const WireCell::Configuration& cfg)
 {
   if (m_adapter) {
@@ -156,6 +165,8 @@ void SimDepoSetSource::configure(const WireCell::Configuration& cfg)
 
   m_inputTag = cfg["art_tag"].asString();
   m_assnTag = cfg["assn_art_tag"].asString();
+  m_id_is_track = get(cfg, "id_is_track", m_id_is_track);
+  m_debug_file = get(cfg, "debug_file", m_debug_file);
 }
 
 void SimDepoSetSource::visit(art::Event& event)
@@ -169,7 +180,8 @@ void SimDepoSetSource::visit(art::Event& event)
     std::cerr << msg << std::endl;
     THROW(WireCell::RuntimeError() << WireCell::errmsg{msg});
   }
-  //else if (sedvh->empty()) return;
+
+  sed_dumper(event, m_inputTag.label(), m_debug_file, "SimDepoSetSource ");
 
   const size_t ndepos = sedvh->size();
 
@@ -211,7 +223,8 @@ void SimDepoSetSource::visit(art::Event& event)
     const WireCell::Point wpt(pt.x() * units::cm, pt.y() * units::cm, pt.z() * units::cm);
     double wt = sed.Time() * units::ns;
     double wq = (*m_adapter)(sed);
-    int wid = sed.TrackID();
+    int wid = ind;
+    if (m_id_is_track) { wid = sed.TrackID(); }
     int pdg = sed.PdgCode();
     double we = sed.Energy() * units::MeV;
 
@@ -230,7 +243,8 @@ void SimDepoSetSource::visit(art::Event& event)
       const WireCell::Point wpt1(pt1.x() * units::cm, pt1.y() * units::cm, pt1.z() * units::cm);
       double wt1 = sed1.Time() * units::ns;
       double wq1 = (*m_adapter)(sed1);
-      int wid1 = sed1.TrackID();
+      int wid1 = ind;
+      if (m_id_is_track) { wid1 = sed1.TrackID(); }
       int pdg1 = sed1.PdgCode();
       double we1 = sed1.Energy() * units::MeV;
 
@@ -265,9 +279,15 @@ bool SimDepoSetSource::operator()(WireCell::IDepoSet::pointer& out)
 {
   if (m_depos.empty()) { return false; }
 
+  depo_dumper(m_depos, m_inputTag.label(), m_debug_file, "SimDepoSetSource ");
   out = std::make_shared<SimpleDepoSet>(m_count, m_depos);
   m_depos.clear();
   ++m_count;
 
   return true;
 }
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 2
+// End:
