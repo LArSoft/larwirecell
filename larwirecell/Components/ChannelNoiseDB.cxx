@@ -33,6 +33,7 @@
 #include "ChannelNoiseDB.h"
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Interface/ElectronicsCalibProvider.h"
@@ -66,11 +67,11 @@ void wcls::ChannelNoiseDB::visit(art::Event& event)
   auto nchans = gc.Nchannels();
 
   if (m_bad_channel_policy) {
-    auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
+    auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->DataFor(event);
 
     std::vector<int> bad_channels;
     for (size_t ich = 0; ich < nchans; ++ich) {
-      if (csvc.IsBad(event.time().value(), ich)) { bad_channels.push_back(ich); }
+      if (csvc->IsBad(ich)) { bad_channels.push_back(ich); }
     }
     OmniChannelNoiseDB::set_bad_channels(bad_channels);
   }

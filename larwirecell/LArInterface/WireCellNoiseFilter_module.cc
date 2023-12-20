@@ -145,8 +145,8 @@ namespace noisefilteralg {
     auto const runNum = e.run();
 
     // Recover services we will need
-    const lariov::ChannelStatusProvider& channelStatus =
-      art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
+    auto const& channelStatus =
+      art::ServiceHandle<lariov::ChannelStatusService const>()->DataFor(e);
     const lariov::DetPedestalProvider& pedestalValues =
       art::ServiceHandle<lariov::DetPedestalService const>()->GetPedestalProvider();
     const lariov::ElectronicsCalibProvider& elec_provider =
@@ -187,7 +187,7 @@ namespace noisefilteralg {
     // Recover bad channels from the database
     std::vector<int> bad_channels;
     for (int channelIdx = 0; channelIdx < nchans; channelIdx++)
-      if (channelStatus.IsBad(e.time().value(), channelIdx)) bad_channels.push_back(channelIdx);
+      if (channelStatus->IsBad(channelIdx)) bad_channels.push_back(channelIdx);
 
     // Q&D RC+RC time constant - all have same.
     const double rcrc = 1.0 * units::millisecond;

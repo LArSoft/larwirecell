@@ -8,6 +8,7 @@
 #include "ChannelSelectorDB.h"
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Interface/ElectronicsCalibProvider.h"
@@ -34,10 +35,10 @@ void wcls::ChannelSelectorDB::visit(art::Event& event)
   auto nchans = gc.Nchannels();
 
   if (m_type == "bad") {
-    auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
+    auto const& csvc = art::ServiceHandle<lariov::ChannelStatusService const>()->DataFor(event);
 
     for (size_t ich = 0; ich < nchans; ++ich) {
-      if (csvc.IsBad(event.time().value(), ich)) { m_bad_channels.push_back(ich); }
+      if (csvc->IsBad(ich)) { m_bad_channels.push_back(ich); }
     }
   }
 
