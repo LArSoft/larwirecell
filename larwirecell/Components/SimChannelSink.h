@@ -65,7 +65,7 @@ namespace wcls {
     double m_g4_ref_time;
     bool m_use_energy;
     bool m_use_extra_sigma; // extra smearing from signal processing
-    std::vector<int> m_process_planes {0,1,2};
+    std::vector<int> m_process_planes{0, 1, 2};
 
     // double Pi = 3.141592653589;
     // WireCell::Pimpos *uboone_u;

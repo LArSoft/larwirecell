@@ -105,15 +105,14 @@ void SimChannelSink::configure(const WireCell::Configuration& cfg)
   m_use_energy = get(cfg, "use_energy", false);
   m_use_extra_sigma = get(cfg, "use_extra_sigma", false);
 
-  m_process_planes = {0,1,2};
-  
+  m_process_planes = {0, 1, 2};
+
   if (cfg.isMember("process_planes")) {
     m_process_planes.clear();
     for (auto jplane : cfg["process_planes"]) {
       m_process_planes.push_back(jplane.asInt());
     }
   }
-  
 }
 
 void SimChannelSink::produces(art::ProducesCollector& collector)
@@ -154,12 +153,12 @@ void SimChannelSink::save_as_simchannel(const WireCell::IDepo::pointer& depo)
           // plane++;
           int iplane = plane->planeid().index();
           if (iplane < 0) continue;
-	  
-	  if (std::find(m_process_planes.begin(),  m_process_planes.end(), iplane) == m_process_planes.end()) {   	      
-	    continue;
-	  }
 
-	  
+          if (std::find(m_process_planes.begin(), m_process_planes.end(), iplane) ==
+              m_process_planes.end()) {
+            continue;
+          }
+
           const Pimpos* pimpos = plane->pimpos();
           auto& wires = plane->wires();
 
