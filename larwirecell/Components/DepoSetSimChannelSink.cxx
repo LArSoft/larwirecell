@@ -37,6 +37,8 @@ WireCell::Configuration DepoSetSimChannelSink::default_configuration() const
   cfg["g4_ref_time"] = -4050 * units::us; // uboone: -4050us, pdsp: -250us
   cfg["use_energy"] = false;
   cfg["use_extra_sigma"] = false;
+  cfg["process_planes"] = Json::arrayValue;
+
   return cfg;
 }
 
@@ -97,6 +99,17 @@ void DepoSetSimChannelSink::configure(const WireCell::Configuration& cfg)
   m_g4_ref_time = get(cfg, "g4_ref_time", -4050 * units::us);
   m_use_energy = get(cfg, "use_energy", false);
   m_use_extra_sigma = get(cfg, "use_extra_sigma", false);
+  
+    m_process_planes = {0,1,2};
+  
+  if (cfg.isMember("process_planes")) {
+    m_process_planes.clear();
+    for (auto jplane : cfg["process_planes"]) {
+      m_process_planes.push_back(jplane.asInt());
+    }
+  }
+
+
 }
 
 void DepoSetSimChannelSink::produces(art::ProducesCollector& collector)
@@ -113,6 +126,7 @@ void DepoSetSimChannelSink::save_as_simchannel(const WireCell::IDepo::pointer& d
    *  to the reponse plane, so the start time is earlier.
    *  c.f. jsonnet config in wirecell toolkit: params.sim.ductor
    */
+
   double response_plane = 10.0 * units::cm;
   double response_time_offset = response_plane / m_drift_speed;
   int response_nticks = (int)(response_time_offset / m_tick);
@@ -134,6 +148,11 @@ void DepoSetSimChannelSink::save_as_simchannel(const WireCell::IDepo::pointer& d
           // plane++;
           int iplane = plane->planeid().index();
           if (iplane < 0) continue;
+
+	    if (std::find(m_process_planes.begin(),  m_process_planes.end(), iplane) == m_process_planes.end()) {   	      
+	      continue;
+	    }
+	    	  
           const Pimpos* pimpos = plane->pimpos();
           auto& wires = plane->wires();
 
@@ -245,6 +264,7 @@ void DepoSetSimChannelSink::save_as_simchannel(const WireCell::IDepo::pointer& d
 
 void DepoSetSimChannelSink::visit(art::Event& event)
 {
+
   std::unique_ptr<std::vector<sim::SimChannel>> out(new std::vector<sim::SimChannel>);
 
   for (auto& m : m_mapSC) {
