@@ -1,6 +1,7 @@
 #include "OpFlashSource.h"
 #include "TTimeStamp.h"
 #include "WireCellAux/SimpleTensor.h"
+#include "WireCellAux/SimpleTensorSet.h"
 #include "WireCellUtil/Logging.h"
 #include "WireCellUtil/NamedFactory.h"
 #include "WireCellUtil/Units.h"
@@ -24,6 +25,7 @@ WIRECELL_FACTORY(wclsOpFlashSource,
 using namespace wcls;
 using namespace WireCell;
 using WireCell::Aux::SimpleTensor;
+using WireCell::Aux::SimpleTensorSet;
 
 OpFlashSource::OpFlashSource() {}
 
@@ -56,32 +58,29 @@ void OpFlashSource::visit(art::Event& event)
     std::cout << "OpFlash time: " << opflash.Time() << " " << opflash.PEs().size() << std::endl;
   }
 
-  //   const auto nflashes = opflashes->size();
-  //   // Create a 2D boost::multi_array with shape 16 x nflashes
-  //   typedef boost::multi_array<double, 2> MultiArray;
-  //   MultiArray array(boost::extents[16][nflashes]);
+  const auto nflashes = opflashes->size();
+  // Create a 2D boost::multi_array with shape 16 x nflashes
+  typedef boost::multi_array<double, 2> MultiArray;
+  MultiArray array(boost::extents[nflashes][m_npmts + 1]);
 
-  //   // ...
-
-  //   for (auto const& opflash : *opflashes) {
-  //     auto tensor = std::make_shared<SimpleTensor<double>>(
-  //       opflash.Time(), opflash.TimeWidth(), opflash.TotalPE());
-  //     m_tensorsets.push_back(tensor);
-
-  //     // Store the values in the boost::multi_array
-  //     // Assuming you want to store the values in the first dimension (16)
-  //     for (int i = 0; i < 16; ++i) {
-  //       array[i][m_tensorsets.size() - 1] = tensor->at(i);
-  //     }
-  //   }
-
-  //   // ...
-
-  //   for (auto const& opflash : *opflashes) {
-  //     auto tensor = std::make_shared<SimpleTensor<double>>(
-  //       opflash.Time(), opflash.TimeWidth(), opflash.TotalPE());
-  //     m_tensorsets.push_back(tensor);
-  //   }
+  for (size_t iflash = 0; iflash < nflashes; ++iflash) {
+    const auto& opflash = opflashes->at(iflash);
+    const auto& pes = opflash.PEs();
+    if (pes.size() != m_npmts) {
+      THROW(ValueError() << errmsg{"WireCell::OpFlashSource got unexpected number of PMTs"});
+    }
+    for (size_t ipmt = 0; ipmt < m_npmts; ++ipmt) {
+      array[iflash][ipmt] = pes[ipmt];
+    }
+  }
+  std::vector<size_t> shape = {array.shape()[0], array.shape()[1]};
+  Json::Value md = Json::objectValue;
+  auto tensor = std::make_shared<SimpleTensor>(shape, array.data(), md);
+  ITensor::vector* itv = new ITensor::vector;
+  itv->push_back(tensor);
+  Configuration set_md;
+  auto tset = std::make_shared<SimpleTensorSet>(0, set_md, ITensor::shared_vector(itv));
+  m_tensorsets.push_back(tset);
 }
 
 bool OpFlashSource::operator()(WireCell::ITensorSet::pointer& tensorset)
