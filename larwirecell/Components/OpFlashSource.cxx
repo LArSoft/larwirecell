@@ -65,12 +65,13 @@ void OpFlashSource::visit(art::Event& event)
 
   for (size_t iflash = 0; iflash < nflashes; ++iflash) {
     const auto& opflash = opflashes->at(iflash);
+    array[iflash][0] = opflash.Time();
     const auto& pes = opflash.PEs();
     if (pes.size() != m_npmts) {
       THROW(ValueError() << errmsg{"WireCell::OpFlashSource got unexpected number of PMTs"});
     }
     for (size_t ipmt = 0; ipmt < m_npmts; ++ipmt) {
-      array[iflash][ipmt] = pes[ipmt];
+      array[iflash][ipmt + 1] = pes[ipmt];
     }
   }
   std::vector<size_t> shape = {array.shape()[0], array.shape()[1]};
@@ -79,7 +80,7 @@ void OpFlashSource::visit(art::Event& event)
   ITensor::vector* itv = new ITensor::vector;
   itv->push_back(tensor);
   Configuration set_md;
-  auto tset = std::make_shared<SimpleTensorSet>(0, set_md, ITensor::shared_vector(itv));
+  auto tset = std::make_shared<SimpleTensorSet>(event.event(), set_md, ITensor::shared_vector(itv));
   m_tensorsets.push_back(tset);
 }
 
