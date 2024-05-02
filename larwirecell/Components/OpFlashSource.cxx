@@ -5,6 +5,7 @@
 #include "WireCellUtil/Logging.h"
 #include "WireCellUtil/NamedFactory.h"
 #include "WireCellUtil/Units.h"
+#include "WireCellUtil/String.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
 #include "lardataobj/RecoBase/OpFlash.h"
@@ -26,6 +27,7 @@ using namespace wcls;
 using namespace WireCell;
 using WireCell::Aux::SimpleTensor;
 using WireCell::Aux::SimpleTensorSet;
+using WireCell::String::format;
 
 OpFlashSource::OpFlashSource() {}
 
@@ -49,6 +51,7 @@ void OpFlashSource::configure(const WireCell::Configuration& cfg)
 
 void OpFlashSource::visit(art::Event& event)
 {
+  std::cout << "OpFlashSource::visit "<< m_inputTag << std::endl;
   art::Handle<std::vector<recob::OpFlash>> opflashes;
   event.getByLabel(m_inputTag, opflashes);
   if (!opflashes.isValid()) {
@@ -67,8 +70,9 @@ void OpFlashSource::visit(art::Event& event)
     const auto& opflash = opflashes->at(iflash);
     array[iflash][0] = opflash.Time();
     const auto& pes = opflash.PEs();
-    if (pes.size() != m_npmts) {
-      THROW(ValueError() << errmsg{"WireCell::OpFlashSource got unexpected number of PMTs"});
+    if (pes.size() < m_npmts) {
+      THROW(ValueError() << errmsg{format("WireCell::OpFlashSource got unexpected number of PMTs expecting %d got %d",
+                                          m_npmts, pes.size())});
     }
     for (size_t ipmt = 0; ipmt < m_npmts; ++ipmt) {
       array[iflash][ipmt + 1] = pes[ipmt];
