@@ -20,7 +20,7 @@ project(larwirecell LANGUAGES CXX)
 # cetbuildtools contains our cmake modules
 
 include(CetCMakeEnv)
-set(${PROJECT_NAME}_CMAKE_PROJECT_VERSION_STRING 10.00.00-rc1)
+set(${PROJECT_NAME}_CMAKE_PROJECT_VERSION_STRING 10.00.00-rc2)
 cet_cmake_env()
 
 cet_cmake_module_directories(Modules)
