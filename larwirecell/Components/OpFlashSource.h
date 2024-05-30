@@ -7,6 +7,8 @@
 #ifndef LARWIRECELL_COMPONENTS_OPFLASHSOURCE
 #define LARWIRECELL_COMPONENTS_OPFLASHSOURCE
 
+#include "WireCellAux/Logger.h"
+
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/ITensorSetSource.h"
 #include "larwirecell/Interfaces/IArtEventVisitor.h"
@@ -14,7 +16,8 @@
 #include "canvas/Utilities/InputTag.h"
 
 namespace wcls {
-  class OpFlashSource : public IArtEventVisitor,
+  class OpFlashSource : public WireCell::Aux::Logger,
+                        public IArtEventVisitor,
                         public WireCell::ITensorSetSource,
                         public WireCell::IConfigurable {
   public:

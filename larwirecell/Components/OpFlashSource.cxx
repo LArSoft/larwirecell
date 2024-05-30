@@ -4,8 +4,8 @@
 #include "WireCellAux/SimpleTensorSet.h"
 #include "WireCellUtil/Logging.h"
 #include "WireCellUtil/NamedFactory.h"
-#include "WireCellUtil/Units.h"
 #include "WireCellUtil/String.h"
+#include "WireCellUtil/Units.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
 #include "lardataobj/RecoBase/OpFlash.h"
@@ -29,7 +29,7 @@ using WireCell::Aux::SimpleTensor;
 using WireCell::Aux::SimpleTensorSet;
 using WireCell::String::format;
 
-OpFlashSource::OpFlashSource() {}
+OpFlashSource::OpFlashSource() : Aux::Logger("OpFlashSource", "op") {}
 
 OpFlashSource::~OpFlashSource() {}
 
@@ -51,14 +51,14 @@ void OpFlashSource::configure(const WireCell::Configuration& cfg)
 
 void OpFlashSource::visit(art::Event& event)
 {
-  std::cout << "OpFlashSource::visit "<< m_inputTag << std::endl;
+  log->debug("OpFlashSource::visit {}", m_inputTag);
   art::Handle<std::vector<recob::OpFlash>> opflashes;
   event.getByLabel(m_inputTag, opflashes);
   if (!opflashes.isValid()) {
     THROW(ValueError() << errmsg{"WireCell::OpFlashSource failed to get opflashes"});
   }
   for (auto const& opflash : *opflashes) {
-    std::cout << "OpFlash time: " << opflash.Time() << " " << opflash.PEs().size() << std::endl;
+    log->debug("OpFlash time: {} PEs: {}", opflash.Time(), opflash.PEs().size());
   }
 
   const auto nflashes = opflashes->size();
@@ -68,11 +68,13 @@ void OpFlashSource::visit(art::Event& event)
 
   for (size_t iflash = 0; iflash < nflashes; ++iflash) {
     const auto& opflash = opflashes->at(iflash);
-    array[iflash][0] = opflash.Time();
+    array[iflash][0] = opflash.Time() / units::microsecond; // TODO: check the unit
     const auto& pes = opflash.PEs();
     if (pes.size() < m_npmts) {
-      THROW(ValueError() << errmsg{format("WireCell::OpFlashSource got unexpected number of PMTs expecting %d got %d",
-                                          m_npmts, pes.size())});
+      raise<ValueError>(
+        format("WireCell::OpFlashSource got unexpected number of PMTs expecting %d got %d",
+               m_npmts,
+               pes.size()));
     }
     for (size_t ipmt = 0; ipmt < m_npmts; ++ipmt) {
       array[iflash][ipmt + 1] = pes[ipmt];
