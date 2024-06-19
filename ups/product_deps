@@ -247,7 +247,7 @@ fcldir	product_dir	fcl
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larevt		v10_00_00rc3
+larevt		v10_00_00rc4
 wirecell	v0_26_0b
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
