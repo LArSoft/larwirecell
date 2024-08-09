@@ -122,13 +122,13 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
   // Populate the channel2layer transform
   std::map<int, std::string> channel2layer;
   std::vector<std::string> tranforms = {"to_U", "to_V", "to_W"};
-  for (const auto& key: tranforms) {
-      int layerValue = (key == "to_U") ? WireCell::kUlayer :
-                       (key == "to_V") ? WireCell::kVlayer :
-                       WireCell::kWlayer;
-      for (const auto& ch: cfg["channels_transform"][key]) {
-        channel2layer[ch.asInt()] = std::to_string(layerValue);
-      }
+  for (const auto& key : tranforms) {
+    int layerValue = (key == "to_U") ? WireCell::kUlayer :
+                     (key == "to_V") ? WireCell::kVlayer :
+                                       WireCell::kWlayer;
+    for (const auto& ch : cfg["channels_transform"][key]) {
+      channel2layer[ch.asInt()] = std::to_string(layerValue);
+    }
   }
 
   const std::string anode_tn = cfg["anode"].asString();
@@ -140,7 +140,6 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
     auto wpid = anode->resolve(chid);
     geo::View_t view;
 
-
     // Use configurable translation between WCT and larsoft
     // plane view IDs. Relevant especially for VD 3 view
     // since the 2nd induction plane is actually labelled
@@ -149,9 +148,7 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
     // kU->kU, kV->kV, kW->kW
     std::string wct_layer = std::to_string((int)wpid.layer());
     // Overwrite wct_layer if necessary
-    if (!channel2layer.empty() && channel2layer.count(chid)) {
-        wct_layer = channel2layer[chid];
-    }
+    if (!channel2layer.empty() && channel2layer.count(chid)) { wct_layer = channel2layer[chid]; }
     view = (geo::View_t)(cfg["plane_map"][wct_layer].asInt());
 
     m_chview[chid] = view;
