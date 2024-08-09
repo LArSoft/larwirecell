@@ -58,6 +58,13 @@ WireCell::Configuration FrameSaver::default_configuration() const
   cfg["plane_map"][std::to_string((int)WireCell::kVlayer)] = (int)geo::kV;
   cfg["plane_map"][std::to_string((int)WireCell::kWlayer)] = (int)geo::kW;
 
+  // Transform channels to have differe plane IDs.
+  // This function is provided in case the plane IDs have been
+  // overwritten by WCT.
+  cfg["channels_transform"]["to_U"] = Json::arrayValue;
+  cfg["channels_transform"]["to_V"] = Json::arrayValue;
+  cfg["channels_transform"]["to_W"] = Json::arrayValue;
+
   // If digitize, raw::RawDigit has slots for pedestal mean and
   // sigma.  Legacy/obsolete code stuff unrelated values into these
   // slots.  If pedestal_mean is a number, it will be stuffed.  If
@@ -112,6 +119,18 @@ static float summary_set(const std::vector<float>& tsvals)
 
 void FrameSaver::configure(const WireCell::Configuration& cfg)
 {
+  // Populate the channel2layer transform
+  std::map<int, std::string> channel2layer;
+  std::vector<std::string> tranforms = {"to_U", "to_V", "to_W"};
+  for (const auto& key: tranforms) {
+      int layerValue = (key == "to_U") ? WireCell::kUlayer :
+                       (key == "to_V") ? WireCell::kVlayer :
+                       WireCell::kWlayer;
+      for (const auto& ch: cfg["channels_transform"][key]) {
+        channel2layer[ch.asInt()] = std::to_string(layerValue);
+      }
+  }
+
   const std::string anode_tn = cfg["anode"].asString();
   if (anode_tn.empty()) { THROW(ValueError() << errmsg{"FrameSaver requires an anode plane"}); }
 
@@ -121,6 +140,7 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
     auto wpid = anode->resolve(chid);
     geo::View_t view;
 
+
     // Use configurable translation between WCT and larsoft
     // plane view IDs. Relevant especially for VD 3 view
     // since the 2nd induction plane is actually labelled
@@ -128,6 +148,10 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
     // Unless otherwise specified, this map amounts to
     // kU->kU, kV->kV, kW->kW
     std::string wct_layer = std::to_string((int)wpid.layer());
+    // Overwrite wct_layer if necessary
+    if (!channel2layer.empty() && channel2layer.count(chid)) {
+        wct_layer = channel2layer[chid];
+    }
     view = (geo::View_t)(cfg["plane_map"][wct_layer].asInt());
 
     m_chview[chid] = view;
