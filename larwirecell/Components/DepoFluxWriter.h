@@ -93,10 +93,10 @@ namespace wcls {
 
     std::string m_debug_file{""};
 
-     // process_planes - This constrains the creation of SimChannels
-     // only to the planes that are relevant, this is important if 
-     // one is using a DepoSetFilter 
-     std::vector<int> m_process_planes{0,1,2};
+    // process_planes - This constrains the creation of SimChannels
+    // only to the planes that are relevant, this is important if
+    // one is using a DepoSetFilter
+    std::vector<int> m_process_planes{0, 1, 2};
 
     // A queue of depos from WCT side
     std::vector<WireCell::IDepo::pointer> m_depos;

@@ -65,7 +65,7 @@ WireCell::Configuration DepoFluxWriter::default_configuration() const
 
   // Provide file name into which validation text is dumped.
   cfg["debug_file"] = m_debug_file;
-  
+
   cfg["process_planes"] = Json::arrayValue;
 
   return cfg;
@@ -130,10 +130,10 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   m_process_planes = {0, 1, 2};
 
   if (cfg.isMember("process_planes")) {
-      m_process_planes.clear();
-      for (auto jplane : cfg["process_planes"]) {
-	  m_process_planes.push_back(jplane.asInt());
-      }
+    m_process_planes.clear();
+    for (auto jplane : cfg["process_planes"]) {
+      m_process_planes.push_back(jplane.asInt());
+    }
   }
 
   // Last, per-plane, arbitrary time offsets in terms of ticks.
@@ -252,8 +252,8 @@ void DepoFluxWriter::visit(art::Event& event)
       if (iplane < 0) continue;
 
       if (std::find(m_process_planes.begin(), m_process_planes.end(), iplane) ==
-	  m_process_planes.end()) {
-	  continue;
+          m_process_planes.end()) {
+        continue;
       }
 
       const Pimpos* pimpos = plane->pimpos();
