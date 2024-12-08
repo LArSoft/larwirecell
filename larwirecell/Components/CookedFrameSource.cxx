@@ -49,62 +49,42 @@ WireCell::Configuration CookedFrameSource::default_configuration() const
 void CookedFrameSource::configure(const WireCell::Configuration& cfg)
 {
   m_scale = cfg["scale"].asDouble();
-  m_debug_channel = (unsigned int)cfg["debug_channel"].asDouble();
   m_tick = cfg["tick"].asDouble();
+  m_nticks = get(cfg, "nticks", m_nticks);
+
+
+  for (auto recobwire_tag : cfg["recobwire_tags"]) {
+    m_recobwire_tags.push_back(recobwire_tag.asString());
+  }
   for (auto jtag : cfg["frame_tags"]) {
     m_frame_tags.push_back(jtag.asString());
   }
-  m_nticks = get(cfg, "nticks", m_nticks);
-
-  // check setup to be used
-  m_wiener_inputTag = cfg["wiener_inputTag"].asString();
-  m_gauss_inputTag = cfg["gauss_inputTag"].asString();
-  for (auto badmask : cfg["badmasks_inputTag"]) {
-    m_badmasks_inputTag.push_back(badmask.asString());
+  for (auto jtag : cfg["trace_tags"]) {
+    m_trace_tags.push_back(jtag.asString());
   }
-  m_threshold_inputTag = cfg["threshold_inputTag"].asString();
-  m_cmm_tag = cfg["cmm_tag"].asString();
-
-  if (m_wiener_inputTag.empty() && m_gauss_inputTag.empty() && !m_badmasks_inputTag.size() &&
-      m_threshold_inputTag.empty() && m_cmm_tag.empty()) { // use standard setup
-    l->debug("wcls::CookedFrameSource: using standard setup");
-    m_cmm_setup = false;
+  for (auto summary_tag : cfg["summary_tags"]) {
+    m_summary_tags.push_back(summary_tag.asString());
   }
-  else { // use cmm setup
-    l->debug("wcls::CookedFrameSource: using cmm setup");
-    m_cmm_setup = true;
+  for (auto mask_tag : cfg["input_mask_tags"]) {
+    m_input_mask_tags.push_back(mask_tag.asString());
   }
-
-  if (!m_cmm_setup) {
-    const std::string art_tag = cfg["art_tag"].asString();
-    if (art_tag.empty()) {
-      THROW(ValueError() << errmsg{"wcls::CookedFrameSource requires a source_label"});
-    }
-    m_inputTag = cfg["art_tag"].asString();
+  for (auto mask_tag : cfg["output_mask_tags"]) {
+    m_output_mask_tags.push_back(mask_tag.asString());
   }
-  else {
-    if (m_wiener_inputTag.empty())
-      THROW(ValueError() << errmsg{
-              "wcls::CookedFrameSource requires a source_label for recob::Wire (wiener)"});
-    if (m_gauss_inputTag.empty())
-      THROW(ValueError() << errmsg{
-              "wcls::CookedFrameSource requires a source_label for recob::Wire (gauss)"});
-    if (m_badmasks_inputTag.size()) {
-      for (auto badmask : m_badmasks_inputTag) {
-        if (badmask.empty())
-          THROW(ValueError() << errmsg{
-                  "wcls::CookedFrameSource cannot use an empty source_label for bad masks"});
-      }
-    }
-    else {
-      THROW(
-        ValueError() << errmsg{"wcls::CookedFrameSource requires a source_label for bad masks"});
-    }
-    if (m_threshold_inputTag.empty())
-      THROW(
-        ValueError() << errmsg{"wcls::CookedFrameSource requires a source_label for threshold"});
-    if (m_cmm_tag.empty())
-      THROW(ValueError() << errmsg{"wcls::CookedFrameSource requires a label for cmm_tag"});
+  if (m_recobwire_tags.size() != m_summary_tags.size()) {
+    raise<ValueError>("m_recobwire_tags.size %d != m_summary_tags.size %d",
+                      m_recobwire_tags.size(),
+                      m_summary_tags.size());
+  }
+  if (m_recobwire_tags.size() != m_trace_tags.size()) {
+    raise<ValueError>("m_recobwire_tags.size %d != m_trace_tags.size %d",
+                      m_recobwire_tags.size(),
+                      m_trace_tags.size());
+  }
+  if (m_input_mask_tags.size() != m_output_mask_tags.size()) {
+    raise<ValueError>("m_input_mask_tags.size %d != m_output_mask_tags.size %d",
+                      m_input_mask_tags.size(),
+                      m_output_mask_tags.size());
   }
 }
 
@@ -142,218 +122,98 @@ static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want)
   return strace;
 }
 
-void CookedFrameSource::visit(art::Event& e)
+void CookedFrameSource::visit(art::Event& event)
 {
-std::cerr << "\n [CookedFrameSource::visit] TEST..\n\n";
-  auto const& event = e;
+  l->debug("CookedFrameSource::visit: event: {}", event.event());
   // fixme: want to avoid depending on DetectorPropertiesService for now.
   const double tick = m_tick;
   const double time = tdiff(event.getRun().beginTime(), event.time());
-  if (!m_cmm_setup) { // do standard setup
-    art::Handle<std::vector<recob::Wire>> rwvh;
-    bool okay = event.getByLabel(m_inputTag, rwvh);
-    if (!okay) {
-      std::string msg =
-        "WireCell::CookedFrameSource failed to get vector<recob::Wire>: " + m_inputTag.encode();
-      std::cerr << msg << std::endl;
-      THROW(RuntimeError() << errmsg{msg});
-    }
-    else if (rwvh->size() == 0)
-      return;
 
+  ITrace::vector* itraces = new ITrace::vector; // will become shared_ptr.
+  IFrame::trace_list_t indices;
+  std::map<std::string, IFrame::trace_list_t> tag2indices;
+
+  for (auto const& recobwire_tag : m_recobwire_tags) {
+    art::Handle<std::vector<recob::Wire>> rwvh;
+    art::InputTag recobwire_tag_art(recobwire_tag);
+    bool okay = event.getByLabel(recobwire_tag_art, rwvh);
+    if (!okay) {
+      raise<RuntimeError>("CookedFrameSource failed to get vector<recob::Wire>: %s", recobwire_tag.c_str());
+    }
     const std::vector<recob::Wire>& rwv(*rwvh);
     const size_t nchannels = rwv.size();
-    std::cerr << "CookedFrameSource: got " << nchannels << " recob::Wire objects\n";
-
-    WireCell::ITrace::vector traces(nchannels);
+    l->debug("wcls::CookedFrameSource: got {} {} recob::Wire objects", nchannels, recobwire_tag);
     for (size_t ind = 0; ind < nchannels; ++ind) {
       auto const& rw = rwv.at(ind);
-      traces[ind] = ITrace::pointer(make_trace(rw, m_nticks));
-      if (!ind) { // first time through
-        if (m_nticks) {
-          std::cerr << "\tinput nticks=" << rw.NSignal() << " setting to " << m_nticks << std::endl;
-        }
-        else {
-          std::cerr << "\tinput nticks=" << rw.NSignal() << " keeping as is" << std::endl;
-        }
-      }
-    }
-
-    auto sframe = new SimpleFrame(event.event(), time, traces, tick);
-    for (auto tag : m_frame_tags) {
-      //std::cerr << "\ttagged: " << tag << std::endl;
-      sframe->tag_frame(tag);
-    }
-    m_frames.push_back(WireCell::IFrame::pointer(sframe));
-    //m_frames.push_back(nullptr); //<- passes empty frame to next module?
-  }
-  else { // do cmm setup
-
-    art::Handle<std::vector<recob::Wire>> rwvh_wiener;
-    art::Handle<std::vector<recob::Wire>> rwvh_gauss;
-    std::map<std::string, art::Handle<std::vector<int>>> bad_masks;
-    art::Handle<std::vector<double>> threshold;
-    bool okay_wiener = event.getByLabel(m_wiener_inputTag, rwvh_wiener);
-    bool okay_gauss = event.getByLabel(m_gauss_inputTag, rwvh_gauss);
-    for (auto badmask : m_badmasks_inputTag) {
-      bool okay = e.getByLabel(badmask, bad_masks[badmask.label()]);
-      if (!okay) {
-        std::string msg = "wcls::CookedFrameSource failed to get vector<int>: " + badmask.encode() +
-                          " (badmask not found)";
-        std::cerr << msg << std::endl;
-        THROW(RuntimeError() << errmsg{msg});
-      }
-      else if (bad_masks[badmask.label()]->size() == 0) {
-        std::string msg = "wcls::CookedFrameSource bad mask " + badmask.encode() + " is empty";
-        std::cerr << msg << std::endl;
-        return;
-      }
-    }
-    bool okay_th = e.getByLabel(m_threshold_inputTag, threshold);
-
-    if (!okay_wiener) {
-      std::string msg =
-        "wcls::CookedFrameSource failed to get vector<recob::Wire>: " + m_wiener_inputTag.encode() +
-        " (wire-cell imaging needs both wiener and gauss recob::Wire)";
-      std::cerr << msg << std::endl;
-      THROW(RuntimeError() << errmsg{msg});
-    }
-    else if (rwvh_wiener->size() == 0)
-      return;
-
-    if (!okay_gauss) {
-      std::string msg =
-        "wcls::CookedFrameSource failed to get vector<recob::Wire>: " + m_gauss_inputTag.encode() +
-        " (wire-cell imaging needs both wiener and gauss recob::Wire)";
-      std::cerr << msg << std::endl;
-      THROW(RuntimeError() << errmsg{msg});
-    }
-    else if (rwvh_gauss->size() == 0)
-      return;
-
-    if (!okay_th) {
-      std::string msg =
-        "wcls::CookedFrameSource failed to get vector<double>: " + m_threshold_inputTag.encode() +
-        " (wire-cell imaging needs thresholds)";
-      std::cerr << msg << std::endl;
-      THROW(RuntimeError() << errmsg{msg});
-    }
-    else if (threshold->size() == 0)
-      return;
-
-    const std::vector<recob::Wire>& wiener_rwv(*rwvh_wiener);
-    const std::vector<recob::Wire>& gauss_rwv(*rwvh_gauss);
-    const size_t nchannels_wiener = wiener_rwv.size();
-    const size_t nchannels_gauss = gauss_rwv.size();
-    l->debug("wcls::CookedFrameSource: got {} (wiener) recob::Wire objects", nchannels_wiener);
-    l->debug("wcls::CookedFrameSource: got {} (gauss) recob::Wire objects", nchannels_gauss);
-
-    ITrace::vector* itraces = new ITrace::vector; // will become shared_ptr.
-    IFrame::trace_list_t indices;
-    IFrame::trace_list_t wiener_traces, gauss_traces;
-
-    for (size_t ind = 0; ind < nchannels_wiener; ++ind) {
-      auto const& rw = wiener_rwv.at(ind);
       SimpleTrace* trace = make_trace(rw, m_nticks);
       const size_t trace_index = itraces->size();
 
       indices.push_back(trace_index);
-      wiener_traces.push_back(trace_index);
+      tag2indices[recobwire_tag].push_back(trace_index);
       itraces->push_back(ITrace::pointer(trace));
-
-      if (!ind) { // first time through
-        if (m_nticks) {
-          l->debug("wcls::CookedFrameSource: input nticks= {} setting to {} (wiener)",
-                   rw.NSignal(),
-                   m_nticks);
-        }
-        else {
-          l->debug("wcls::CookedFrameSource: input nticks= {} keeping as is (wiener)",
-                   rw.NSignal());
-        }
-      }
     }
-
-    for (size_t ind = 0; ind < nchannels_gauss; ++ind) {
-      auto const& rw = gauss_rwv.at(ind);
-      SimpleTrace* trace = make_trace(rw, m_nticks);
-      const size_t trace_index = itraces->size();
-
-      // ------ Debug Ewerton 2023-10-05 ------
-     // if(rw.Channel()==8320) {
-     //   for(unsigned int itick=0; itick < rw.Signal().size(); itick++) {
-     //     std::cerr << "\n [gauss] input recob::Wire: charge(tick=" << itick << ")=" << rw.Signal().at(itick);
-     //   }
-     // }
-      // ------ end Debug Ewerton 2023-10-05 ------
-
-      indices.push_back(trace_index);
-      gauss_traces.push_back(trace_index);
-      itraces->push_back(ITrace::pointer(trace));
-
-      if (!ind) { // first time through
-        if (m_nticks) {
-          l->debug("wcls::CookedFrameSource: input nticks= {} setting to {} (gauss)\n",
-                   rw.NSignal(),
-                   m_nticks);
-        }
-        else {
-          l->debug("wcls::CookedFrameSource: input nticks= {} keeping as is (gauss)\n",
-                   rw.NSignal());
-        }
-      }
-    }
-
-    Waveform::ChannelMaskMap cmm;
-    Waveform::ChannelMasks cm_out;
-
-    for (auto bad_mask : bad_masks) {
-      Waveform::ChannelMasks cm;
-      size_t nchannels = bad_mask.second->size() / 3;
-      for (size_t i = 0; i < nchannels; i++) {
-        size_t ch_idx = 3 * i;
-        size_t low_idx = 3 * i + 1;
-        size_t up_idx = 3 * i + 2;
-        auto cmch = bad_mask.second->at(ch_idx);
-        auto cm_first = bad_mask.second->at(low_idx);
-        auto cm_second = bad_mask.second->at(up_idx);
-        Waveform::BinRange bins(cm_first, cm_second);
-        cm[cmch].push_back(bins);
-      }
-      cm_out = Waveform::merge(cm_out, cm);
-    }
-
-    cmm[m_cmm_tag] = cm_out; // for now use a single tag for output cmm
-
-    auto sframe =
-      new Aux::SimpleFrame(event.event(), time, ITrace::shared_vector(itraces), tick, cmm);
-    for (auto tag : m_frame_tags) {
-      sframe->tag_frame(tag);
-    }
-
-    sframe->tag_traces(m_wiener_tag, wiener_traces, *threshold);
-    sframe->tag_traces(m_gauss_tag, gauss_traces);
-
-   // ------ Debug Ewerton 2023-10-05 ------
-   //auto gtraces = sframe->tagged_traces("gauss");
-   //auto wtraces = sframe->tagged_traces("wiener");
-   auto summary = sframe->trace_summary(m_wiener_tag);//"wiener");
-   //std::cerr << "\n CookedFrameSource: outputframe: gtraces.size()=" << wtraces.size();
-   //std::cerr << "\n CookedFrameSource: outputframe: wtraces.size()=" << wtraces.size();
-   std::cerr << "\n CookedFrameSource: outputframe: summary.size()=" << summary.size();
-   for(unsigned int i=0;  i < wiener_rwv.size(); i++) {
-     //outfile << wiener_rwv.at(i).Channel() << " " << summary[i] << std::endl; 
-     outfile << wiener_rwv.at(i).Channel() << " " << threshold->at(i) << std::endl; 
-     if(6200 < wiener_rwv.at(i).Channel() && wiener_rwv.at(i).Channel() < 7400) {
-       auto th = summary[i];      
-       std::cerr << "\n CookedFrameSource: [wiener ch=" << wiener_rwv.at(i).Channel() << "] th=" << th;
-     }
-   }
-   // ------ end Debug Ewerton 2023-10-05 ------
-
-    m_frames.push_back(WireCell::IFrame::pointer(sframe));
-    m_frames.push_back(nullptr); // <= put back 2023-10-05
   }
+
+  std::map<std::string, art::Handle<std::vector<double>>> tag2summaryh;
+  for (auto const& summary_tag : m_summary_tags) {
+    if (summary_tag.empty()) {
+      continue;
+    }
+    bool okay = event.getByLabel(summary_tag, tag2summaryh[summary_tag]);
+    if (!okay) {
+      raise<RuntimeError>("CookedFrameSource failed to get vector<double>: %s", summary_tag.c_str());
+    }
+  }
+
+  std::map<std::string, art::Handle<std::vector<int>>> tag2maskh;
+  for (auto mask_tag : m_input_mask_tags) {
+    bool okay = event.getByLabel(mask_tag, tag2maskh[mask_tag]);
+    if (!okay) {
+      raise<RuntimeError>("CookedFrameSource failed to get vector<int>: %s", mask_tag.c_str());
+    }
+  }
+  std::map<std::string, std::string> tag2outtag;
+  for (size_t ind = 0; ind < m_input_mask_tags.size(); ++ind) {
+    tag2outtag[m_input_mask_tags[ind]] = m_output_mask_tags[ind];
+  }
+
+  Waveform::ChannelMaskMap cmm;
+
+  for (auto [tag, mask] : tag2maskh) {
+    Waveform::ChannelMasks& cm = cmm[tag2outtag[tag]];
+    size_t nchannels = mask->size() / 3;
+    for (size_t i = 0; i < nchannels; i++) {
+      size_t ch_idx = 3 * i;
+      size_t low_idx = 3 * i + 1;
+      size_t up_idx = 3 * i + 2;
+      auto cmch = mask->at(ch_idx);
+      auto cm_first = mask->at(low_idx);
+      auto cm_second = mask->at(up_idx);
+      Waveform::BinRange bins(cm_first, cm_second);
+      cm[cmch].push_back(bins);
+    }
+  }
+
+  auto sframe =
+    new Aux::SimpleFrame(event.event(), time, ITrace::shared_vector(itraces), tick, cmm);
+
+  for (auto tag : m_frame_tags) {
+    sframe->tag_frame(tag);
+  }
+  for (size_t ind = 0; ind < m_trace_tags.size(); ++ind) {
+    auto recobwire_tag = m_recobwire_tags[ind];
+    auto trace_tag = m_trace_tags[ind];
+    auto summary_tag = m_summary_tags[ind];
+    if (tag2summaryh.find(summary_tag) != tag2summaryh.end()) {
+      sframe->tag_traces(trace_tag, tag2indices[recobwire_tag], *tag2summaryh[summary_tag]);
+    }
+    else {
+      sframe->tag_traces(trace_tag, tag2indices[recobwire_tag]);
+    }
+  }
+
+  m_frames.push_back(WireCell::IFrame::pointer(sframe));
+  m_frames.push_back(nullptr); // <= put back 2023-10-05
 }
 
 bool CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)

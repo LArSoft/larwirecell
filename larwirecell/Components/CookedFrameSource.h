@@ -42,22 +42,16 @@ namespace wcls {
 
   private:
     std::deque<WireCell::IFrame::pointer> m_frames;
-    art::InputTag m_inputTag;
     double m_tick;
     int m_nticks;
-    std::vector<std::string> m_frame_tags;
-    art::InputTag m_wiener_inputTag;
-    art::InputTag m_gauss_inputTag;
-    std::vector<art::InputTag> m_badmasks_inputTag;
-    art::InputTag m_threshold_inputTag;
-    bool m_cmm_setup{false}; // true means use cmm setup
-    std::string m_wiener_tag{"wiener"};
-    std::string m_gauss_tag{"gauss"};
-    std::string m_cmm_tag; // for now use a single tag for output cmm
     double m_scale; // scale up input recob::Wire by this factor
-    unsigned int m_debug_channel; // <= debug purposes. Deleteme later.
+    std::vector<std::string> m_frame_tags;
+    std::vector<std::string> m_recobwire_tags;
+    std::vector<std::string> m_trace_tags;
+    std::vector<std::string> m_summary_tags;
+    std::vector<std::string> m_input_mask_tags;
+    std::vector<std::string> m_output_mask_tags;
     WireCell::Log::logptr_t l;
-    std::ofstream outfile {"output-CoookedFrameSource-thresholds.txt"};// added Ewerton 2024-02-29
   };
 
 }
