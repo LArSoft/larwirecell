@@ -61,6 +61,7 @@ WireCell::Configuration DepoFluxWriter::default_configuration() const
 
   // output to art::Event
   cfg["simchan_label"] = m_simchan_label;
+  cfg["sparse"] = true;
 
   // Provide file name into which validation text is dumped.
   cfg["debug_file"] = m_debug_file;
@@ -96,6 +97,9 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   m_simchan_label = get(cfg, "simchan_label", m_simchan_label);
   m_sed_label = get(cfg, "sed_label", m_sed_label);
   m_debug_file = get(cfg, "debug_file", m_debug_file);
+
+  // sparsity
+  m_sparse = get(cfg, "sparse", true);
 
   // time-binning
   const double wtick = get(cfg, "tick", 0.5 * units::us);
@@ -169,6 +173,15 @@ void DepoFluxWriter::visit(art::Event& event)
 
   std::map<unsigned int, sim::SimChannel> simchans;
 
+  // if dense, initialize SimChannels
+  if (!m_sparse) {
+    for (auto& anode : m_anodes) {
+      for (auto& channel : anode->channels()) {
+        simchans.try_emplace(channel, sim::SimChannel(channel));
+      }
+    }
+  }
+
   for (const auto& depo : m_depos) {
     if (!depo) continue;
 
@@ -213,7 +226,10 @@ void DepoFluxWriter::visit(art::Event& event)
       trackID = depo->id();
       if (!energy) { energy = depo->energy(); }
     }
-    if (sedvh->size()) { // IDepo::id() is index
+    if (sedvh.isValid()) { // IDepo::id() is index
+      if (trackID < 0 || trackID >= (int)sedvh->size()) {
+        throw cet::exception("DepoFluxWriter") << "trackID= " << trackID << " is out of bounds!\n";
+      }
       const auto& sed = sedvh->at(trackID);
       trackID = sed.TrackID();
       origTrackID = sed.OrigTrackID();

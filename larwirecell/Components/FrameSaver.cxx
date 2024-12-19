@@ -81,6 +81,7 @@ WireCell::Configuration FrameSaver::default_configuration() const
   // Summaries to output, if any
   cfg["summary_tags"] = Json::arrayValue;
   cfg["summary_scale"] = 1.0;
+  cfg["summary_suffix"] = "summary";
   // Sumaries are *per trace* quantities coming in but it is likely
   // that some (most?) consumers of the output will expect *per
   // channel* quantities.  Aggregating by channel requires some
@@ -93,6 +94,8 @@ WireCell::Configuration FrameSaver::default_configuration() const
 
   // Names of channel mask maps to save, if any.
   cfg["chanmaskmaps"] = Json::arrayValue;
+  cfg["cmm_masks_suffix"] = "masks";
+  cfg["cmm_channels_suffix"] = "channels";
 
   return cfg;
 }
@@ -135,6 +138,8 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
   m_skipframe = get(cfg, "skip_frame", false);
 
   m_cmms = cfg["chanmaskmaps"];
+  m_cmm_masks_suffix = cfg["cmm_masks_suffix"].asString();
+  m_cmm_channels_suffix = cfg["cmm_channels_suffix"].asString();
 
   m_pedestal_mean = cfg["pedestal_mean"];
   m_pedestal_sigma = get(cfg, "pedestal_sigma", 0.0);
@@ -171,6 +176,8 @@ void FrameSaver::configure(const WireCell::Configuration& cfg)
     auto jscale = cfg["summary_scale"];
     m_summary_tags.clear();
     auto jtags = cfg["summary_tags"];
+    m_summary_suffix.clear();
+    m_summary_suffix = cfg["summary_suffix"].asString();
     for (auto jtag : jtags) {
       std::string tag = jtag.asString();
 
@@ -208,14 +215,14 @@ void FrameSaver::produces(art::ProducesCollector& collector)
   }
   for (auto tag : m_summary_tags) {
     std::cerr << "wclsFrameSaver: promising to produce channel summary named \"" << tag << "\"\n";
-    collector.produces<std::vector<double>>(tag);
+    collector.produces<std::vector<double>>(tag + m_summary_suffix);
   }
   for (auto cmm : m_cmms) {
     const std::string cmm_name = cmm.asString();
     std::cerr << "wclsFrameSaver: promising to produce channel masks named \"" << cmm_name
               << "\"\n";
-    collector.produces<channel_list>(cmm_name + "channels");
-    collector.produces<channel_masks>(cmm_name + "masks");
+    collector.produces<channel_list>(cmm_name + m_cmm_channels_suffix);
+    collector.produces<channel_masks>(cmm_name + m_cmm_masks_suffix);
   }
 }
 
@@ -460,7 +467,7 @@ void FrameSaver::save_summaries(art::Event& event)
       outsum->at(chanind) = val * scale;
       ++chanind;
     }
-    event.put(std::move(outsum), tag);
+    event.put(std::move(outsum), tag + m_summary_suffix);
   }
 }
 
@@ -496,8 +503,8 @@ void FrameSaver::save_cmms(art::Event& event)
     if (out_list->empty()) {
       std::cerr << "wclsFrameSaver: found empty channel masks for \"" << name << "\"\n";
     }
-    event.put(std::move(out_list), name + "channels");
-    event.put(std::move(out_masks), name + "masks");
+    event.put(std::move(out_list), name + m_cmm_channels_suffix);
+    event.put(std::move(out_masks), name + m_cmm_masks_suffix);
   }
 }
 
@@ -519,15 +526,15 @@ void FrameSaver::save_empty(art::Event& event)
 
   for (auto stag : m_summary_tags) {
     std::unique_ptr<std::vector<double>> outsum(new std::vector<double>);
-    event.put(std::move(outsum), stag);
+    event.put(std::move(outsum), stag + m_summary_suffix);
   }
 
   for (auto jcmm : m_cmms) {
     std::string name = jcmm.asString();
     std::unique_ptr<channel_list> out_list(new channel_list);
     std::unique_ptr<channel_masks> out_masks(new channel_masks);
-    event.put(std::move(out_list), name + "channels");
-    event.put(std::move(out_masks), name + "masks");
+    event.put(std::move(out_list), name + m_cmm_channels_suffix);
+    event.put(std::move(out_masks), name + m_cmm_masks_suffix);
   }
 }
 

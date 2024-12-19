@@ -13,6 +13,7 @@ cet_make_library(LIBRARY_NAME WireCellLarsoft
   FrameSaver.cxx
   LazyFrameSource.cxx
   MultiChannelNoiseDB.cxx
+  OpFlashSource.cxx
   RawFrameSource.cxx
   SimDepoSetSource.cxx
   SimDepoSource.cxx
