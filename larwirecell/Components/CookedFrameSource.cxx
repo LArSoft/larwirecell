@@ -33,16 +33,6 @@ WireCell::Configuration CookedFrameSource::default_configuration() const
   cfg["tick"] = 0.5 * WireCell::units::us;
   cfg["frame_tags"][0] = "orig"; // the tags to apply to this frame
   cfg["nticks"] = m_nticks;      // if nonzero, truncate or zero-pad frame to this number of ticks.
-
-  // ----- Ewerton: Modify original CookedFrameSource
-  // ----- to read in products for wire-cell imaging
-
-  cfg["wiener_inputTag"] = "";                 // art tag for wiener recob::Wire
-  cfg["gauss_inputTag"] = "";                  // art tag for gauss recob::Wire
-  cfg["badmasks_inputTag"] = Json::arrayValue; // list of art tags for bad channels
-  cfg["threshold_inputTag"] = "";              // art tag for thresholds
-  cfg["cmm_tag"] = "";                         // for now use a single tag for output cmm
-  cfg["scale"] = 1.;                           // scale up input recob::Wire by this factor
   return cfg;
 }
 
