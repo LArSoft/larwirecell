@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-
 namespace wcls {
   class CookedFrameSource : public IArtEventVisitor,
                             public WireCell::IFrameSource,

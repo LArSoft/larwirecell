@@ -4,7 +4,7 @@
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Run.h"
 #include "lardataobj/RecoBase/Wire.h"
- 
+
 #include "TTimeStamp.h"
 
 #include "WireCellAux/SimpleFrame.h"
@@ -41,7 +41,6 @@ void CookedFrameSource::configure(const WireCell::Configuration& cfg)
   m_scale = cfg["scale"].asDouble();
   m_tick = cfg["tick"].asDouble();
   m_nticks = get(cfg, "nticks", m_nticks);
-
 
   for (auto recobwire_tag : cfg["recobwire_tags"]) {
     m_recobwire_tags.push_back(recobwire_tag.asString());
@@ -87,7 +86,9 @@ static double tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
   return tts2.AsDouble() - tts1.AsDouble();
 }
 
-static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want, const double scale = 50)
+static SimpleTrace* make_trace(const recob::Wire& rw,
+                               unsigned int nticks_want,
+                               const double scale = 50)
 {
   // uint
   const raw::ChannelID_t chid = rw.Channel();
@@ -104,7 +105,10 @@ static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want, 
   auto strace = new SimpleTrace(chid, tbin, nticks_want);
   auto& q = strace->charge();
   for (unsigned int itick = 0; itick < nsamp; ++itick) {
-    q[itick] = scale*sig[itick]; // changed Ewerton 2023-10-06 recob::Wire it scaled up by a factor (make it onfigurable!!!)
+    q[itick] =
+      scale *
+      sig
+        [itick]; // changed Ewerton 2023-10-06 recob::Wire it scaled up by a factor (make it onfigurable!!!)
   }
   for (unsigned int itick = nsamp; itick < nticks_want; ++itick) {
     q[itick] = baseline;
@@ -128,7 +132,8 @@ void CookedFrameSource::visit(art::Event& event)
     art::InputTag recobwire_tag_art(recobwire_tag);
     bool okay = event.getByLabel(recobwire_tag_art, rwvh);
     if (!okay) {
-      raise<RuntimeError>("CookedFrameSource failed to get vector<recob::Wire>: %s", recobwire_tag.c_str());
+      raise<RuntimeError>("CookedFrameSource failed to get vector<recob::Wire>: %s",
+                          recobwire_tag.c_str());
     }
     const std::vector<recob::Wire>& rwv(*rwvh);
     const size_t nchannels = rwv.size();
@@ -146,12 +151,11 @@ void CookedFrameSource::visit(art::Event& event)
 
   std::map<std::string, art::Handle<std::vector<double>>> tag2summaryh;
   for (auto const& summary_tag : m_summary_tags) {
-    if (summary_tag.empty()) {
-      continue;
-    }
+    if (summary_tag.empty()) { continue; }
     bool okay = event.getByLabel(summary_tag, tag2summaryh[summary_tag]);
     if (!okay) {
-      raise<RuntimeError>("CookedFrameSource failed to get vector<double>: %s", summary_tag.c_str());
+      raise<RuntimeError>("CookedFrameSource failed to get vector<double>: %s",
+                          summary_tag.c_str());
     }
   }
 
