@@ -18,8 +18,6 @@
 #include <deque>
 #include <string>
 #include <vector>
-#include <iostream> // added Ewerton 2024-02-29 (deleteme later)
-#include <fstream> // added Ewerton 2024-02-29 (deleteme later)  
 
 
 namespace wcls {
