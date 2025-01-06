@@ -97,7 +97,7 @@ static double tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
   return tts2.AsDouble() - tts1.AsDouble();
 }
 
-static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want)
+static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want, const double scale = 50)
 {
   // uint
   const raw::ChannelID_t chid = rw.Channel();
@@ -114,7 +114,7 @@ static SimpleTrace* make_trace(const recob::Wire& rw, unsigned int nticks_want)
   auto strace = new SimpleTrace(chid, tbin, nticks_want);
   auto& q = strace->charge();
   for (unsigned int itick = 0; itick < nsamp; ++itick) {
-    q[itick] = 50*sig[itick]; // changed Ewerton 2023-10-06 recob::Wire it scaled up by a factor (make it onfigurable!!!)
+    q[itick] = scale*sig[itick]; // changed Ewerton 2023-10-06 recob::Wire it scaled up by a factor (make it onfigurable!!!)
   }
   for (unsigned int itick = nsamp; itick < nticks_want; ++itick) {
     q[itick] = baseline;
@@ -145,7 +145,7 @@ void CookedFrameSource::visit(art::Event& event)
     l->debug("wcls::CookedFrameSource: got {} {} recob::Wire objects", nchannels, recobwire_tag);
     for (size_t ind = 0; ind < nchannels; ++ind) {
       auto const& rw = rwv.at(ind);
-      SimpleTrace* trace = make_trace(rw, m_nticks);
+      SimpleTrace* trace = make_trace(rw, m_nticks, m_scale);
       const size_t trace_index = itraces->size();
 
       indices.push_back(trace_index);
