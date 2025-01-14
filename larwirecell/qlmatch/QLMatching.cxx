@@ -78,7 +78,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
   const auto& charge_tens = *charge_ts->tensors();
   log->debug("charge_tens.size {}", charge_tens.size());
-  auto root_live = std::move(Aux::TensorDM::as_pctree(charge_tens, inpath + "/live"));
+  auto root_live = Aux::TensorDM::as_pctree(charge_tens, inpath + "/live");
   if (!root_live) {
     log->error("Failed to get point cloud tree from \"{}\"", inpath);
     return false;
