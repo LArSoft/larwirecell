@@ -247,28 +247,28 @@ void TimingTPCBundle::examine_merge_clusters(double dis_cut)
     {
       Cluster* cluster1 = temp_cluster;
       Cluster* cluster2 = main_cluster;
-      SlimMergeGeomCell* prev_mcell1 = 0;
-      SlimMergeGeomCell* prev_mcell2 = 0;
-      SlimMergeGeomCell* mcell1 = 0;
+      Blob* prev_mcell1 = 0;
+      Blob* prev_mcell2 = 0;
+      Blob* mcell1 = 0;
       Point p1; //
-      SlimMergeGeomCell* mcell2 = 0;
+      Blob* mcell2 = 0;
       Point p2;
 
-      mcell1 = *(cluster1->get_time_cells_set_map().begin()->second.begin());
-      p1 = mcell1->center();
+      mcell1 = *(cluster1->time_blob_map().begin()->second.begin());
+      p1 = {mcell1->center_x(), mcell1->center_y(), mcell1->center_z()};
 
       while (mcell1 != prev_mcell1 || mcell2 != prev_mcell2) {
         prev_mcell1 = mcell1;
         prev_mcell2 = mcell2;
 
         // find the closest point and merged cell in cluster2
-        std::pair<SlimMergeGeomCell*, Point> temp_results = cluster2->get_closest_point_mcell(p1);
-        p2 = temp_results.second;
-        mcell2 = temp_results.first;
+        std::pair<Point, const Blob*> temp_results = cluster2->get_closest_point_blob(p1);
+        p2 = temp_results.first;
+        mcell2 = temp_results.second;
         // find the closest point and merged cell in cluster1
-        temp_results = cluster1->get_closest_point_mcell(p2);
-        p1 = temp_results.second;
-        mcell1 = temp_results.first;
+        temp_results = cluster1->get_closest_point_blob(p2);
+        p1 = temp_results.first;
+        mcell1 = temp_results.second;
       }
       double dis = sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2) + pow(p1.z - p2.z, 2));
 
@@ -285,13 +285,13 @@ void TimingTPCBundle::examine_merge_clusters(double dis_cut)
         prev_mcell2 = mcell2;
 
         // find the closest point and merged cell in cluster2
-        std::pair<SlimMergeGeomCell*, Point> temp_results = cluster2->get_closest_point_mcell(p1);
-        p2 = temp_results.second;
-        mcell2 = temp_results.first;
+        std::pair<Point, const Blob*> temp_results = cluster2->get_closest_point_blob(p1);
+        p2 = temp_results.first;
+        mcell2 = temp_results.second;
         // find the closest point and merged cell in cluster1
-        temp_results = cluster1->get_closest_point_mcell(p2);
-        p1 = temp_results.second;
-        mcell1 = temp_results.first;
+        temp_results = cluster1->get_closest_point_blob(p2);
+        p1 = temp_results.first;
+        mcell1 = temp_results.second;
       }
       dis = sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2) + pow(p1.z - p2.z, 2));
 
@@ -302,17 +302,22 @@ void TimingTPCBundle::examine_merge_clusters(double dis_cut)
   }
 
   if (merge_clusters.size() > 0) {
-    merge_clusters.push_back(main_cluster);
-    Cluster* ncluster = new Cluster(main_cluster_id);
-    for (auto it1 = merge_clusters.begin(); it1 != merge_clusters.end(); it1++) {
-      Cluster* ocluster = *(it1);
-      SMGCSelection& mcells = ocluster->get_mcells();
-      for (auto it2 = mcells.begin(); it2 != mcells.end(); it2++) {
-        SlimMergeGeomCell* mcell = (*it2);
-        // std::cout << ocluster->get_cluster_id() << " " << mcell << std::endl;
-        int time_slice = mcell->GetTimeSlice();
-        ncluster->AddCell(mcell, time_slice);
-      }
+    // merge_clusters.push_back(main_cluster);
+    // Cluster* ncluster = new Cluster(main_cluster_id);
+    // for (auto it1 = merge_clusters.begin(); it1 != merge_clusters.end(); it1++) {
+    //   Cluster* ocluster = *(it1);
+    //   SMGCSelection& mcells = ocluster->get_mcells();
+    //   for (auto it2 = mcells.begin(); it2 != mcells.end(); it2++) {
+    //     Blob* mcell = (*it2);
+    //     // std::cout << ocluster->get_cluster_id() << " " << mcell << std::endl;
+    //     int time_slice = mcell->GetTimeSlice();
+    //     ncluster->AddCell(mcell, time_slice);
+    //   }
+    // }
+    auto grouping = main_cluster->grouping();
+    for (auto tobemerger : merge_clusters) {
+      main_cluster->take_children(*tobemerger, true);
+      grouping.destroy_child(tobemerger);
     }
     // delete old clusters
     for (auto it1 = merge_clusters.begin(); it1 != merge_clusters.end(); it1++) {
@@ -326,7 +331,7 @@ void TimingTPCBundle::examine_merge_clusters(double dis_cut)
         delete ocluster;
       }
     }
-    main_cluster = ncluster;
+    // main_cluster = ncluster;
   }
 }
 
