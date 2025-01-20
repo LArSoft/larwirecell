@@ -121,6 +121,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   std::vector<Cluster*> clusters = grouping->children();
   std::vector<TimingTPCBundle::pointer> bundles;
   log->debug("checking TimingTPCBundle object");
+  /// FIXME: rm this fake code for testing
   std::vector<double> cos_pe_low(nchan, 0.0);
   std::vector<double> cos_pe_mid(nchan, 1e9);
   for (auto flash : flashes) {
@@ -130,7 +131,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       TimingTPCBundle::pointer bundle =
         std::make_shared<TimingTPCBundle>(flash.get(), cluster, flash->get_flash_id(), icluster);
       bundles.push_back(bundle);
-      // fake code for testing
+      /// FIXME: rm this fake code for testing
       if (icluster==0)
       {
         bundle->set_pred_pmt_light(flash->get_PEs());
