@@ -5,13 +5,14 @@ FindWireCell
 find_program(WIRE-CELL NAMES wire-cell HINTS ENV WIRECELL_FQ_DIR)
 mark_as_advanced(WIRE-CELL)
 
-set(_fwc_libs Ress Util Iface Apps Hio Pgraph Root Sig Tbb Aux Gen Img SigProc Sio)
+set(_fwc_libs Ress Util Iface Apps Hio Pgraph Root Sig Tbb Aux Gen Img Clus SigProc Sio)
 set(_fwc_transitive_deps_Apps WireCell::Iface WireCell::Util)
 set(_fwc_transitive_deps_Aux WireCell::Iface WireCell::Util Boost::headers Eigen3::Eigen)
 set(_fwc_transitive_deps_Gen WireCell::Aux WireCell::Iface WireCell::Util Boost::headers Eigen3::Eigen)
 set(_fwc_transitive_deps_Hio WireCell::Iface WireCell::Util h5cpp)
 set(_fwc_transitive_deps_Iface WireCell::Util Boost::graph Boost::headers)
 set(_fwc_transitive_deps_Img WireCell::Aux WireCell::Iface WireCell::Util)
+set(_fwc_transitive_deps_Clus WireCell::Aux WireCell::Iface WireCell::Util)
 set(_fwc_transitive_deps_Pgraph WireCell::Iface WireCell::Util Boost::headers)
 set(_fwc_transitive_deps_Ress jsoncpp_lib jsonnet_lib Eigen3::Eigen)
 set(_fwc_transitive_deps_Root WireCell::Iface WireCell::Util)
@@ -77,6 +78,10 @@ if (WIRE-CELL)
 else()
   set(_fwc_fphsa_extra_args "could not find executable \"wire-cell\"")
 endif()
+
+message("WIRE-CELL: ${WIRE-CELL}")
+message("WireCell_INCLUDE_DIR: ${WireCell_INCLUDE_DIR}")
+message("WireCell_LIBRARIES: ${WireCell_LIBRARIES}")
 
 include(FindPackageHandleStandardArgs)
 

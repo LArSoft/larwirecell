@@ -1,5 +1,6 @@
 #include "Opflash.h"
 
+#include "WireCellAux/SimpleTensor.h"
 #include "WireCellUtil/Exceptions.h"
 
 WireCell::QLMatch::Opflash::Opflash(const ITensor::pointer ten,
@@ -28,9 +29,11 @@ WireCell::QLMatch::Opflash::Opflash(const ITensor::pointer ten,
   boost::array<MultiArray::index, 2> shape = {nrow, ncol};
   boost::multi_array_ref<double, 2> ten_data((double*)ten->data(), shape);
 
-  time = ten_data[idx][0] total_PE = 0;
+  time = ten_data[idx][0];
+  total_PE = 0;
   PE.resize(nchan, 0);
-  PE_err.resize(nchan, 0);
+  /// FIXME: understand and implement PE_err
+  PE_err.resize(nchan, 1);
 
   for (int i = 0; i < nchan; ++i) {
     PE[i] = ten_data[idx][i + 1];
