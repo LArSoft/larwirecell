@@ -10,7 +10,6 @@
 
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/IFrameSource.h"
-#include "WireCellUtil/Logging.h"
 #include "larwirecell/Interfaces/IArtEventVisitor.h"
 
 #include "canvas/Utilities/InputTag.h"
@@ -39,16 +38,10 @@ namespace wcls {
 
   private:
     std::deque<WireCell::IFrame::pointer> m_frames;
+    art::InputTag m_inputTag;
     double m_tick;
     int m_nticks;
-    double m_scale{50}; // scale up input recob::Wire by this factor
     std::vector<std::string> m_frame_tags;
-    std::vector<std::string> m_recobwire_tags;
-    std::vector<std::string> m_trace_tags;
-    std::vector<std::string> m_summary_tags;
-    std::vector<std::string> m_input_mask_tags;
-    std::vector<std::string> m_output_mask_tags;
-    WireCell::Log::logptr_t l;
   };
 
 }
