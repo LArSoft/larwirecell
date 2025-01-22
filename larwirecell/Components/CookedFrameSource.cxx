@@ -7,9 +7,9 @@
 
 #include "TTimeStamp.h"
 
+#include "WireCellAux/FrameTools.h"
 #include "WireCellAux/SimpleFrame.h"
 #include "WireCellAux/SimpleTrace.h"
-#include "WireCellAux/FrameTools.h"
 #include "WireCellUtil/NamedFactory.h"
 #include "WireCellUtil/Waveform.h"
 
