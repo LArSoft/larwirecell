@@ -9,6 +9,7 @@
 
 #include "WireCellAux/SimpleFrame.h"
 #include "WireCellAux/SimpleTrace.h"
+#include "WireCellAux/FrameTools.h"
 #include "WireCellUtil/NamedFactory.h"
 #include "WireCellUtil/Waveform.h"
 
@@ -38,8 +39,8 @@ WireCell::Configuration CookedFrameSource::default_configuration() const
 
 void CookedFrameSource::configure(const WireCell::Configuration& cfg)
 {
-  m_scale = cfg["scale"].asDouble();
-  m_tick = cfg["tick"].asDouble();
+  m_scale = get(cfg, "scale", m_scale);
+  m_tick = get(cfg, "tick", m_tick);
   m_nticks = get(cfg, "nticks", m_nticks);
 
   for (auto recobwire_tag : cfg["recobwire_tags"]) {
@@ -88,7 +89,7 @@ static double tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
 
 static SimpleTrace* make_trace(const recob::Wire& rw,
                                unsigned int nticks_want,
-                               const double scale = 50)
+                               const double scale = 1.)
 {
   // uint
   const raw::ChannelID_t chid = rw.Channel();
@@ -195,6 +196,7 @@ void CookedFrameSource::visit(art::Event& event)
     sframe->tag_frame(tag);
   }
   for (size_t ind = 0; ind < m_trace_tags.size(); ++ind) {
+    if (m_trace_tags[ind].empty()) { continue; }
     auto recobwire_tag = m_recobwire_tags[ind];
     auto trace_tag = m_trace_tags[ind];
     auto summary_tag = m_summary_tags[ind];
@@ -215,6 +217,7 @@ bool CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)
   frame = nullptr;
   if (m_frames.empty()) { return false; }
   frame = m_frames.front();
+  l->debug("CookedFrameSource output {}", Aux::taginfo(frame));
   m_frames.pop_front();
   return true;
 }
