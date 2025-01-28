@@ -245,8 +245,8 @@ defaultqual	e26
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larevt		v09_10_03
-wirecell	v0_27_1
+larevt		v10_00_03
+wirecell	v0_29_5
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
