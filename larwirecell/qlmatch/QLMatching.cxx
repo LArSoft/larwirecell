@@ -566,7 +566,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
           // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
-        P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
       }
 
       for (size_t k=0; k < bundles.size(); k++){
@@ -595,18 +594,15 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       } // loop over bundles in flash 
       i++;
     } // end loop over flashes
-    log->debug("end loop over flashes");
 
     for (uint k=0; k<ncluster; k++){
       MF(k) = 1./delta_charge;
     }
 
-    log->debug("pairs size {}", pairs.size());
     for (size_t n=0; n<pairs.size(); n++){
       auto cluster = pairs.at(n).second;
       PF(cluster_idx_map[cluster], n) = 1./delta_charge;
     }
-    log->debug("end loop over pairs");
 
     Ress::matrix_t PT = P.transpose();
     Ress::matrix_t PFT = PF.transpose();
@@ -614,7 +610,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t y = PT * M + PFT * MF; 
     Ress::matrix_t X = PT * P + PFT * PF; 
 
-    log->debug("y dim {}", y.rows());
     Ress::vector_t initial  = Ress::vector_t::Zero(nbundle);
     for (size_t n=0; n <pairs.size(); n++){
       auto bundle = flash_cluster_bundles_map[pairs.at(n)];
@@ -624,7 +619,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       else //if (bundle->get_flag_close_to_PMT())
         initial(n) = 0.1;
     }
-    log->debug("initial dim {}", initial.rows());
     Ress::Params params;
     params.model = Ress::lasso;
     params.lambda = lambda;
@@ -651,16 +645,16 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   } // end second matching round
   // BEE debug direct imaging output and dead blobs
   log->debug("done with matching");
-  // if (!m_bee_dir.empty()) {
-  //   std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
-  //   Persist::assuredir(sub_dir);
-  //   QLMatch::dump_bee_3d(
-  //     *root_live.get(),
-  //     String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-  //   QLMatch::dump_bee_flash(
-  //     invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-  // }
-  // log->debug(em("dump bee"));
+  if (!m_bee_dir.empty()) {
+    std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
+    Persist::assuredir(sub_dir);
+    QLMatch::dump_bee_3d(
+      *root_live.get(),
+      String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+    QLMatch::dump_bee_flash(
+      invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+  }
+  log->debug(em("dump bee"));
 
   // TODO: actual impl.
   out = invec[0];
