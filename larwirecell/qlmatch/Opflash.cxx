@@ -32,11 +32,16 @@ WireCell::QLMatch::Opflash::Opflash(const ITensor::pointer ten,
   time = ten_data[idx][0];
   total_PE = 0;
   PE.resize(nchan, 0);
-  /// FIXME: understand and implement PE_err
   PE_err.resize(nchan, 1);
 
   for (int i = 0; i < nchan; ++i) {
     PE[i] = ten_data[idx][i + 1];
+    if (PE[i]<1){
+      PE_err[i] = 0.05;
+    }
+    else{
+      PE_err[i] = 0.05*PE[i]; // pow(0.1*PE[i],2);
+    }
     total_PE += PE[i];
     if (PE[i] > threshold) { fired_channels.push_back(i); }
   }

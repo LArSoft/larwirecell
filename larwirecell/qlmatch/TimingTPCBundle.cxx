@@ -6,6 +6,7 @@ using namespace WireCell::PointCloud::Facade;
 // #include <boost/math/distributions/kolmogorov_smirnov.hpp>
 
 // Calculate KS test statistic manually
+// TODO: check that this is correct
 double calc_ks_test(const std::vector<double>& measured, const std::vector<double>& predicted)
 {
   // Both distributions should be normalized and same length
@@ -55,7 +56,8 @@ TimingTPCBundle::TimingTPCBundle(Opflash* flash,
   , strength(0)
 {
   m_nchan = flash->get_num_channels();
-  pred_pmt_light.resize(m_nchan, 0);
+  pred_flash.resize(m_nchan, 0);
+  opdet_mask.resize(m_nchan, 0);
 }
 
 TimingTPCBundle::~TimingTPCBundle() {}
@@ -63,8 +65,8 @@ TimingTPCBundle::~TimingTPCBundle() {}
 double TimingTPCBundle::get_total_pred_light()
 {
   double sum = 0;
-  for (size_t i = 0; i != pred_pmt_light.size(); i++) {
-    sum += pred_pmt_light.at(i);
+  for (size_t i = 0; i != pred_flash.size(); i++) {
+    sum += pred_flash.at(i);
   }
   return sum;
 }
@@ -84,7 +86,7 @@ bool TimingTPCBundle::examine_bundle(TimingTPCBundle* bundle,
   for (int i = 0; i != m_nchan; i++) {
     pe[i] = flash->get_PE(i);
     pe_err[i] = flash->get_PE_err(i);
-    pred_pe[i] = pred_pmt_light.at(i) + bundle->get_pred_pmt_light().at(i);
+    pred_pe[i] = pred_flash.at(i) + bundle->get_pred_flash().at(i);
   }
 
   // Process the data and fill distributions
@@ -180,7 +182,7 @@ bool TimingTPCBundle::examine_bundle_rank(TimingTPCBundle* bundle,
   for (int i = 0; i != m_nchan; i++) {
     pe[i] = flash->get_PE(i);
     pe_err[i] = flash->get_PE_err(i);
-    pred_pe[i] = pred_pmt_light.at(i) + bundle->get_pred_pmt_light().at(i);
+    pred_pe[i] = pred_flash.at(i) + bundle->get_pred_flash().at(i);
   }
 
   // Process the data and fill distributions
@@ -404,11 +406,11 @@ void TimingTPCBundle::add_bundle(TimingTPCBundle* bundle,
     flag_at_x_boundary = bundle->get_flag_at_x_boundary();
   }
 
-  std::vector<double>& pes = bundle->get_pred_pmt_light();
-  for (size_t i = 0; i != pred_pmt_light.size(); i++) {
-    pred_pmt_light.at(i) += pes.at(i);
+  std::vector<double>& pes = bundle->get_pred_flash();
+  for (size_t i = 0; i != pred_flash.size(); i++) {
+    pred_flash.at(i) += pes.at(i);
   }
-  examine_bundle(cos_pe_low, cos_pe_mid);
+  examine_bundle();
 }
 
 bool TimingTPCBundle::examine_beam_bundle()
@@ -425,7 +427,7 @@ bool TimingTPCBundle::examine_beam_bundle()
   for (int i = 0; i != m_nchan; i++) {
     pe[i] = flash->get_PE(i);
     pe_err[i] = flash->get_PE_err(i);
-    pred_pe[i] = pred_pmt_light.at(i);
+    pred_pe[i] = pred_flash.at(i);
   }
 
   // Fill distributions
@@ -529,8 +531,7 @@ bool TimingTPCBundle::examine_beam_bundle()
   return false;
 }
 
-bool TimingTPCBundle::examine_bundle(const std::vector<double>& cos_pe_low,
-                                     const std::vector<double>& cos_pe_mid)
+bool TimingTPCBundle::examine_bundle()
 {
   // Store data in vectors instead of histograms
   std::vector<double> measured_dist(m_nchan);
@@ -544,7 +545,7 @@ bool TimingTPCBundle::examine_bundle(const std::vector<double>& cos_pe_low,
   for (int i = 0; i != m_nchan; i++) {
     pe[i] = flash->get_PE(i);
     pe_err[i] = flash->get_PE_err(i);
-    pred_pe[i] = pred_pmt_light.at(i);
+    pred_pe[i] = pred_flash.at(i);
   }
 
   // Process data and fill distributions
@@ -552,10 +553,6 @@ bool TimingTPCBundle::examine_bundle(const std::vector<double>& cos_pe_low,
   double total_measured = 0;
   for (int j = 0; j != m_nchan; j++) {
     measured_dist[j] = pe[j];
-    if ((pred_pe[j] < cos_pe_low[j] || (pred_pe[j] < cos_pe_mid[j] * 1.1 && pe[j] == 0)) &&
-        flash->get_type() == 1) {
-      pred_pe[j] = 0;
-    }
     predicted_dist[j] = pred_pe[j];
     total_predicted += pred_pe[j];
     total_measured += pe[j];
@@ -573,116 +570,42 @@ bool TimingTPCBundle::examine_bundle(const std::vector<double>& cos_pe_low,
     }
   }
 
-  // Calculate KS test using Boost
   if (total_predicted > 0) {
-    // boost::math::kolmogorov_smirnov_test(measured_dist, predicted_dist, &ks_dis);
     ks_dis = calc_ks_test(measured_dist, predicted_dist);
   }
 
   chi2 = 0;
   ndf = 0;
-  double max_chi2 = 0;
-  int max_bin = -1;
-
+  // double max_chi2 = 0;
+  // int max_bin = -1;
+  int nvalidopdets = 0;
   // Calculate chi-square statistics
   for (int j = 0; j != m_nchan; j++) {
+    if (opdet_mask[j] == 0) continue;
+    else nvalidopdets++;
     double cur_chi2 = 0;
 
-    if (flag_close_to_PMT) {
-      if (pe[j] - pred_pe[j] > 350 && pe[j] > pred_pe[j] * 1.3) {
-        cur_chi2 = pow(pred_pe[j] - pe[j], 2) / (pow(pe_err[j], 2) + pow(pe[j] * 0.5, 2));
-      }
-      else {
-        cur_chi2 = pow(pred_pe[j] - pe[j], 2) / pow(pe_err[j], 2);
-      }
-    }
-    else {
-      cur_chi2 = pow(pred_pe[j] - pe[j], 2) / pow(pe_err[j], 2);
-    }
+    // TODO: add config for noise threshold of PE
+    if (pe[j] < 1  && pred_pe[j] < 1) {}
+    else ndf++;
+    // * can add different chisq calculation (or different denominator) for cluster flags
+    cur_chi2 = pow(pred_pe[j] - pe[j], 2) / (pe[j] + pow(pe_err[j], 2));
     chi2 += cur_chi2;
 
-    if (cur_chi2 > max_chi2) {
-      max_chi2 = cur_chi2;
-      max_bin = j;
-    }
+    // std::cout << "opdet" << j << " " << pe[j] << " " << pred_pe[j] << " " << pe_err[j] << " " << cur_chi2 << std::endl;
 
-    if (pe[j] == 0 && pred_pe[j] == 0) {}
-    else {
-      ndf++;
-    }
+    // * can do some special treatment when the worst chi2 is from a channel with no measured light
+    // if (cur_chi2 > max_chi2) {
+    //   max_chi2 = cur_chi2;
+      // max_bin = j;
+    // }
   }
-
-  if (pe[max_bin] == 0 && pred_pe[max_bin] > 0) { chi2 -= max_chi2 - 1; }
+  // if (pe[max_bin] == 0 && pred_pe[max_bin] > 0) { chi2 -= max_chi2 - 1; }
 
   // Check multiple consistency conditions
   flag_high_consistent = false;
-  if (ks_dis < 0.06 && ndf >= 3 && chi2 < ndf * 36) { flag_high_consistent = true; }
-  else if (ks_dis < 0.05 && ndf >= 6 && chi2 < ndf * 45) {
-    flag_high_consistent = true;
-  }
-  else if (ks_dis < 0.12 && ndf >= 3 && chi2 < ndf * 25) {
-    flag_high_consistent = true;
-  }
-  else if (flag_at_x_boundary && ndf >= 2 && chi2 < 9 * ndf && ks_dis < 0.12) {
-    flag_high_consistent = true;
-  }
-  else if (flag_at_x_boundary && ndf >= 1 && chi2 < 3 * ndf && ks_dis < 0.12) {
-    flag_high_consistent = true;
-  }
-  else if (chi2 < 4 * ndf && ndf >= 3 && ks_dis < 0.15) {
-    flag_high_consistent = true;
-  }
-  else if (chi2 < 1.5 * ndf && ks_dis < 0.2 && ndf >= 3) {
-    flag_high_consistent = true;
-  }
-  else if (ks_dis < 0.12 && ndf >= 5 && chi2 < ndf * 55 && flag_close_to_PMT) {
-    flag_high_consistent = true;
-  }
-  else if (ks_dis < 0.14 && ndf >= 3 && chi2 < ndf * 6) {
-    flag_high_consistent = true;
-  }
+  if (ks_dis < 0.06 && ndf >= 3 && chi2 < ndf * nvalidopdets) { flag_high_consistent = true; }
 
   if (flag_high_consistent) { return true; }
-  else {
-    // Check fired PMTs statistics
-    double ntot = 0;
-    double ntot1 = 0;
-    double nfired = 0;
-    double nfired1 = 0;
-    for (int j = 0; j != m_nchan; j++) {
-      if (pred_pe[j] > 0.33) {
-        ntot++;
-        if (pe[j] > 0.33 * pred_pe[j]) nfired++;
-      }
-      if (pred_pmt_light.at(j) > 1.0) {
-        ntot1++;
-        if (pe[j] > 0.33 * pred_pmt_light.at(j)) nfired1++;
-      }
-    }
-
-    // Handle special cases
-    if (nfired <= 1 && (nfired1 != 0 && nfired1 > 0.75 * ntot1)) return true;
-    if (nfired <= 2 && ks_dis > 0.8 && chi2 > 60 * ndf && ndf >= 6) return false;
-
-    if (flag_at_x_boundary && (!flag_close_to_PMT)) {
-      if (nfired == 0) { flag_potential_bad_match = true; }
-      if (nfired == 1 && ntot <= 2 && nfired1 < 0.2 * ntot1) { flag_potential_bad_match = true; }
-      if (nfired < 0.5 * ntot && ntot - nfired >= 2) { flag_potential_bad_match = true; }
-    }
-    else {
-      if (nfired == 0) {
-        flag_potential_bad_match = true;
-        return false;
-      }
-      if (nfired == 1 && ntot <= 2 && nfired1 < 0.2 * ntot1) {
-        flag_potential_bad_match = true;
-        return false;
-      }
-      if (nfired < 0.5 * ntot && ntot - nfired >= 2) {
-        flag_potential_bad_match = true;
-        return false;
-      }
-    }
-  }
-  return true;
+  else { return false;}
 }

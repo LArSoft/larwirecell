@@ -27,8 +27,8 @@ namespace WireCell::QLMatch {
     bool get_flag_close_to_PMT() { return flag_close_to_PMT; };
     bool get_flag_at_x_boundary() { return flag_at_x_boundary; };
 
-    std::vector<double>& get_pred_pmt_light() { return pred_pmt_light; };
-    void set_pred_pmt_light(const std::vector<double>& values) { pred_pmt_light = values; };
+    std::vector<double>& get_pred_flash() { return pred_flash; };
+    void set_pred_flash(const std::vector<double>& values) { pred_flash = values; };
     Opflash* get_flash() { return flash; };
     void set_flash(Opflash* flash1) { flash = flash1; };
     double get_total_pred_light();
@@ -45,8 +45,10 @@ namespace WireCell::QLMatch {
     void clear_more_clusters() { more_clusters.clear(); };
     void add_other_cluster(Cluster* cluster) { other_clusters.push_back(cluster); };
 
-    bool examine_bundle(const std::vector<double>& cos_pe_low,
-                        const std::vector<double>& cos_pe_mid);
+    std::vector<uint>& get_opdet_mask() { return opdet_mask; };
+    void set_opdet_mask(const std::vector<uint>& mask) { opdet_mask = mask; };
+
+    bool examine_bundle();
 
     /// TODO: these two are similar, merge them?
     /// TODO: hardcoded cuts, make them configurable?
@@ -90,6 +92,7 @@ namespace WireCell::QLMatch {
     Cluster* orig_main_cluster;
     int flash_index_id;
     int cluster_index_id;
+    std::vector<uint> opdet_mask;
 
     bool flag_close_to_PMT;
     bool flag_at_x_boundary;
@@ -104,22 +107,16 @@ namespace WireCell::QLMatch {
     double strength;
 
     int m_nchan;
-    std::vector<double> pred_pmt_light; // prediction
-
-    // add some varialbes for LM events ...
-
-    // place holder for Brooke ...
-
+    std::vector<double> pred_flash; // prediction
     std::vector<Cluster*> other_clusters; // save every other one
     std::vector<Cluster*> more_clusters;  // save ones satisfying the cut
   };
 
   /// TODO: implement comparison operators
-  typedef std::vector<TimingTPCBundle*> TimingTPCBundleSelection;
-  typedef std::set<TimingTPCBundle*> TimingTPCBundleSet;
-  typedef std::map<Opflash*, TimingTPCBundleSelection> Flash_bundles_map;
-  typedef std::map<WireCell::PointCloud::Facade::Cluster*, TimingTPCBundleSelection>
-    Cluster_bundles_map;
+  typedef std::vector<TimingTPCBundle::pointer> TimingTPCBundleSelection;
+  typedef std::set<TimingTPCBundle::pointer> TimingTPCBundleSet;
+  typedef std::map<Opflash*, TimingTPCBundleSelection> FlashBundlesMap;
+  typedef std::map<WireCell::PointCloud::Facade::Cluster*, TimingTPCBundleSelection> ClusterBundlesMap;
 
 } // namespace WCP
 

@@ -6,6 +6,11 @@
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/ITensorSetFanin.h"
 
+#include "TimingTPCBundle.h"
+
+using namespace WireCell;
+using namespace WireCell::PointCloud::Facade;
+
 namespace WireCell::QLMatch {
   class QLMatching : public Aux::Logger, public ITensorSetFanin, public IConfigurable {
   public:
@@ -35,6 +40,9 @@ namespace WireCell::QLMatch {
     std::string m_inpath{"pointtrees/%d"};
     std::string m_outpath{"pointtrees/%d"};
     std::string m_bee_dir{"data"};
+
+    void remove_bundle_selection(TimingTPCBundleSelection to_be_removed, TimingTPCBundleSet& bundle_set);
+    void remove_bundle_selection(TimingTPCBundleSelection to_be_removed, FlashBundlesMap& flash_bundles_map, ClusterBundlesMap& cluster_bundles_map, std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map);
   };
 }
 
