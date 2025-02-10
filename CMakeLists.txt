@@ -35,6 +35,7 @@ cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 find_package(art REQUIRED EXPORT)
 find_package(ROOT COMPONENTS Core REQUIRED EXPORT)
 
+find_package(larsim REQUIRED EXPORT)
 find_package(larcore REQUIRED EXPORT)
 find_package(lardata REQUIRED EXPORT)
 find_package(larevt REQUIRED EXPORT)

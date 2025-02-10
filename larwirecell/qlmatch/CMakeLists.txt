@@ -6,9 +6,11 @@ cet_make_library(LIBRARY_NAME WireCellQLMatch
         TimingTPCBundle.cxx
         util.cxx
     LIBRARIES
-    PUBLIC
+    PUBLIC 
+        larsim::PhotonPropagation
         WireCell::Util
         WireCell::Aux
         WireCell::Clus
         WireCell::Iface
 )
+install_fhicl()
