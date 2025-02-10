@@ -40,7 +40,7 @@ namespace wcls {
     // label:instance:processName
     art::InputTag m_inputTag{};
 
-    size_t m_npmts{305};
+    size_t m_npmts{312};
   };
 }
 
