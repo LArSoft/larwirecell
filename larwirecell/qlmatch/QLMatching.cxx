@@ -471,6 +471,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       else //if (bundle->get_flag_close_to_PMT())
         initial(n) = 0.1;
     }
+    log->debug("initial dim {}", initial.rows());
 
     Ress::Params params;
     params.model = Ress::lasso;
@@ -512,134 +513,154 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     remove_bundle_selection(to_be_removed, pre_bundles);
   } // end matching round
   // second matching round
-  // {
-  //   uint nbundle = pre_bundles.size();
-  //   uint nflash = flash_bundles_map.size(); 
-  //   uint ncluster = cluster_bundles_map.size();
+  {
+    uint nbundle = pre_bundles.size();
+    uint nflash = flash_bundles_map.size(); 
+    uint ncluster = cluster_bundles_map.size();
 
-  //   // create map between cluster object and cluster vector/matrix index
-  //   // create map between flash object and flash vector/matrix index
-  //   std::map<Cluster*, int> cluster_idx_map;
-  //   std::map<Opflash*, int> flash_idx_map;
+    // create map between cluster object and cluster vector/matrix index
+    // create map between flash object and flash vector/matrix index
+    std::map<Cluster*, int> cluster_idx_map;
+    std::map<Opflash*, int> flash_idx_map;
 
-  //   int cluster_idx = 0;
-  //   int flash_idx = 0;
-  //   for (auto it=cluster_bundles_map.begin(); it != cluster_bundles_map.end(); ++it){
-  //     auto cluster = it->first;
-  //     auto index = cluster_idx;
-  //     cluster_idx_map[cluster] = index;
-  //     cluster_idx++;
-  //   }
-  //   for (auto it=flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
-  //     auto flash = it->first;
-  //     auto index = flash_idx;
-  //     flash_idx_map[flash] = index;
-  //     flash_idx++;
-  //   }
+    int cluster_idx = 0;
+    int flash_idx = 0;
+    for (auto it=cluster_bundles_map.begin(); it != cluster_bundles_map.end(); ++it){
+      auto cluster = it->first;
+      auto index = cluster_idx;
+      cluster_idx_map[cluster] = index;
+      cluster_idx++;
+    }
+    for (auto it=flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
+      auto flash = it->first;
+      auto index = flash_idx;
+      flash_idx_map[flash] = index;
+      flash_idx++;
+    }
 
-  //   Ress::vector_t M  = Ress::vector_t::Zero(nopdet*nflash); // measurement 
-  //   Ress::matrix_t P  = Ress::matrix_t::Zero(nopdet*nflash, nbundle); // prediction 
-  //   Ress::vector_t MF = Ress::vector_t::Zero(ncluster); // measurement flag
-  //   Ress::matrix_t PF = Ress::matrix_t::Zero(ncluster, nbundle); // prediction flag
-  //   Ress::vector_t weights = Ress::vector_t::Zero(nbundle);
-  //   std::vector<std::pair<Opflash*,Cluster*>> pairs;
+    Ress::vector_t M  = Ress::vector_t::Zero(nopdet*nflash); // measurement 
+    Ress::matrix_t P  = Ress::matrix_t::Zero(nopdet*nflash, nbundle); // prediction 
+    Ress::vector_t MF = Ress::vector_t::Zero(ncluster); // measurement flag
+    Ress::matrix_t PF = Ress::matrix_t::Zero(ncluster, nbundle); // prediction flag
+    Ress::vector_t weights = Ress::vector_t::Zero(nbundle);
+    std::vector<std::pair<Opflash*,Cluster*>> pairs;
 
-  //   log->debug("M dim {}", M.rows());
-  //   log->debug("P dim {} {}", P.rows(), P.cols());
-  //   log->debug("MF dim {} {}", MF.rows(), MF.cols());
-  //   log->debug("PF dim {} {}", PF.rows(), PF.cols());
-  //   log->debug("weights dim {}", weights.rows());
+    log->debug("M dim {}", M.rows());
+    log->debug("P dim {} {}", P.rows(), P.cols());
+    log->debug("MF dim {} {}", MF.rows(), MF.cols());
+    log->debug("PF dim {} {}", PF.rows(), PF.cols());
+    log->debug("weights dim {}", weights.rows());
     
-  //   size_t i = 0; // flash index counter
-  //   size_t ik = 0; // weights index counter
-  //   for (auto it =flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
-  //     auto flash = it->first;
-  //     auto bundles = it->second;
+    size_t i = 0; // flash index counter
+    size_t ik = 0; // weights index counter
+    log->debug("flash_bundles_map size {}", flash_bundles_map.size());
+    for (auto it =flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
+      auto flash = it->first;
+      auto bundles = it->second;
 
-  //     for (uint j=0; j<nopdet; j++){
-  //       auto opdet_idx = opdet_idx_v.at(j);
-  //       auto pe = flash->get_PE(opdet_idx);
-  //       // ! for now, use total measured PE as the error
-  //       auto pe_err = flash->get_PE_err(opdet_idx);
-  //         // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+      for (uint j=0; j<nopdet; j++){
+        auto opdet_idx = opdet_idx_v.at(j);
+        auto pe = flash->get_PE(opdet_idx);
+        // ! for now, use total measured PE as the error
+        auto pe_err = flash->get_PE_err(opdet_idx);
+          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
 
-  //       M(i*nopdet + j) = pe/pe_err; // measurement term 
-  //       P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
-  //     }
+        M(i*nopdet + j) = pe/pe_err; // measurement term 
+        P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
+      }
 
-  //     for (size_t k=0; k < bundles.size(); k++){
-  //       auto bundle = bundles.at(k);
-  //       auto pred_flash = bundle->get_pred_flash();
+      for (size_t k=0; k < bundles.size(); k++){
+        auto bundle = bundles.at(k);
+        auto pred_flash = bundle->get_pred_flash();
 
-  //       for (uint j=0; j<nopdet; j++){
-  //         auto opdet_idx = opdet_idx_v.at(j);
-  //         auto pred_pe = pred_flash.at(opdet_idx);
-  //         auto pe_err  = flash->get_PE_err(opdet_idx);
-  //         // ! for now, use total measured PE as the error
-  //         // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-  //         P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
-  //       }
+        for (uint j=0; j<nopdet; j++){
+          auto opdet_idx = opdet_idx_v.at(j);
+          auto pred_pe = pred_flash.at(opdet_idx);
+          auto pe_err  = flash->get_PE_err(opdet_idx);
+          // ! for now, use total measured PE as the error
+          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+          P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
+        }
 
-  //       pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
+        pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
 
-  //       if (bundle->get_flag_close_to_PMT()){
-  //         weights(ik) = 0.5;
-  //         ik++;
-  //       }
-  //       else{
-  //         weights(ik) = 1.0;
-  //         ik++;
-  //       }
-  //     } // loop over bundles in flash 
-  //     // MF(ncluster+i) = 0;
-  //     i++;
-  //   } // end loop over flashes
+        if (bundle->get_flag_close_to_PMT()){
+          weights(ik) = 0.5;
+          ik++;
+        }
+        else{
+          weights(ik) = 1.0;
+          ik++;
+        }
+      } // loop over bundles in flash 
+      i++;
+    } // end loop over flashes
+    log->debug("end loop over flashes");
 
+    for (uint k=0; k<ncluster; k++){
+      MF(k) = 1./delta_charge;
+    }
 
-  //   for (uint k=0; k<ncluster; k++){
-  //     MF(k) = 1./delta_charge;
-  //   }
+    log->debug("pairs size {}", pairs.size());
+    for (size_t n=0; n<pairs.size(); n++){
+      auto cluster = pairs.at(n).second;
+      PF(cluster_idx_map[cluster], n) = 1./delta_charge;
+    }
+    log->debug("end loop over pairs");
 
-  //   for (size_t n=0; n<pairs.size(); n++){
-  //     auto cluster = pairs.at(n).second;
-  //     PF(cluster_idx_map[cluster], n) = 1./delta_charge;
-  //   }
+    Ress::matrix_t PT = P.transpose();
+    Ress::matrix_t PFT = PF.transpose();
 
-  //   Ress::matrix_t PT = P.transpose();
-  //   Ress::matrix_t PFT = PF.transpose();
+    Ress::vector_t y = PT * M + PFT * MF; 
+    Ress::matrix_t X = PT * P + PFT * PF; 
 
-  //   Ress::vector_t y = PT * M + PFT * MF; 
-  //   Ress::matrix_t X = PT * P + PFT * PF; 
+    log->debug("y dim {}", y.rows());
+    Ress::vector_t initial  = Ress::vector_t::Zero(nbundle);
+    for (size_t n=0; n <pairs.size(); n++){
+      auto bundle = flash_cluster_bundles_map[pairs.at(n)];
+      if (bundle->get_consistent_flag()){
+        initial(n) = 1.0;
+      }
+      else //if (bundle->get_flag_close_to_PMT())
+        initial(n) = 0.1;
+    }
+    log->debug("initial dim {}", initial.rows());
+    Ress::Params params;
+    params.model = Ress::lasso;
+    params.lambda = lambda;
 
-  //   Ress::vector_t initial  = Ress::vector_t::Zero(nbundle + nflash);
-  //   for (size_t n=0; n <pairs.size(); n++){
-  //     auto bundle = flash_cluster_bundles_map[pairs.at(n)];
-  //     if (bundle->get_consistent_flag()){
-  //       initial(n) = 1.0;
-  //     }
-  //     else //if (bundle->get_flag_close_to_PMT())
-  //       initial(n) = 0.1;
-  //   }
-  //   Ress::Params params;
-  //   params.model = Ress::lasso;
-  //   params.lambda = lambda;
+    log->debug("solving");
+    Ress::vector_t solution = Ress::solve(X, y, params, initial, weights);
+    log->debug("solution size {}", solution.size());
+    int n=0;
+    for (auto it=flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
+      auto flash = it->first;
+      auto bundles = it->second;
+      for (size_t k=0; k < bundles.size(); k++){
+        auto bundle = bundles.at(k);
 
-  //   log->debug("solving");
-  //   Ress::vector_t solution = Ress::solve(X, y, params, initial, weights);
-  //   log->debug("solution size {}", solution.size());
-  // }
-
+        if (solution(n)!=0)
+          log->debug("flash+bundle: flash {}, cluster {}, consistent flag {} solution={}",
+                    flash->get_flash_id(),
+                    cluster_idx_map[bundle->get_main_cluster()],
+                    bundle->get_consistent_flag(),
+                    solution(n));
+        n++;
+      }
+    }
+  } // end second matching round
   // BEE debug direct imaging output and dead blobs
-  if (!m_bee_dir.empty()) {
-    std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
-    Persist::assuredir(sub_dir);
-    QLMatch::dump_bee_3d(
-      *root_live.get(),
-      String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-    QLMatch::dump_bee_flash(
-      invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-  }
-  log->debug(em("dump bee"));
+  log->debug("done with matching");
+  // if (!m_bee_dir.empty()) {
+  //   std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
+  //   Persist::assuredir(sub_dir);
+  //   QLMatch::dump_bee_3d(
+  //     *root_live.get(),
+  //     String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+  //   QLMatch::dump_bee_flash(
+  //     invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+  // }
+  // log->debug(em("dump bee"));
 
   // TODO: actual impl.
   out = invec[0];
@@ -676,14 +697,3 @@ void WireCell::QLMatch::QLMatching::remove_bundle_selection(TimingTPCBundleSelec
     }
   }
 }
-
-// void WireCell::QLMatch::QLMatching::chi2_fitting(int round,
-//                                                  TimingTPCBundleSet& bundle_set,
-//                                                  FlashBundlesMap& flash_bundles_map, 
-//                                                  ClusterBundlesMap& cluster_bundles_map, 
-//                                                  std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map){
-//   double lambda = 0.1;
-//   double delta_charge = 0.01;
-//   double delta_light = 0.025;
-
-// }
