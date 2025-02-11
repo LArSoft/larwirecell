@@ -405,8 +405,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
         // ! for now, use total measured PE as the error
-        auto pe_err = flash->get_PE_err(opdet_idx);
-          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+        // auto pe_err = flash->get_PE_err(opdet_idx);
+        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
         P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
@@ -419,9 +419,9 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j=0; j<nopdet; j++){
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          auto pe_err  = flash->get_PE_err(opdet_idx);
           // ! for now, use total measured PE as the error
-          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+          // auto pe_err  = flash->get_PE_err(opdet_idx);
+          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
@@ -469,7 +469,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         initial(n) = 1.0;
       }
       else //if (bundle->get_flag_close_to_PMT())
-        initial(n) = 0.1;
+        initial(n) = 0.5;
     }
     log->debug("initial dim {}", initial.rows());
 
@@ -488,7 +488,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
 
-        if (solution(n)!=0)
+        if (solution(n)>0.05)
           log->debug("flash+bundle: flash {}, cluster {}, consistent flag {} solution={}",
                     flash->get_flash_id(),
                     cluster_idx_map[bundle->get_main_cluster()],
@@ -562,8 +562,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
         // ! for now, use total measured PE as the error
-        auto pe_err = flash->get_PE_err(opdet_idx);
-          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+        // auto pe_err = flash->get_PE_err(opdet_idx);
+        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
       }
@@ -575,9 +575,9 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j=0; j<nopdet; j++){
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          auto pe_err  = flash->get_PE_err(opdet_idx);
           // ! for now, use total measured PE as the error
-          // auto pe_err = (flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+          // auto pe_err  = flash->get_PE_err(opdet_idx);
+          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
@@ -617,7 +617,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         initial(n) = 1.0;
       }
       else //if (bundle->get_flag_close_to_PMT())
-        initial(n) = 0.1;
+        initial(n) = 0.5;
     }
     Ress::Params params;
     params.model = Ress::lasso;
@@ -633,12 +633,18 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
 
-        if (solution(n)!=0)
-          log->debug("flash+bundle: flash {}, cluster {}, consistent flag {} solution={}",
-                    flash->get_flash_id(),
-                    cluster_idx_map[bundle->get_main_cluster()],
-                    bundle->get_consistent_flag(),
-                    solution(n));
+        if (solution(n)>0.005){
+            log->debug("flash+bundle: flash {}, cluster {} time {}",
+                flash->get_flash_id(),
+                cluster_idx_map[bundle->get_main_cluster()],
+                int(100*flash->get_time())/100.);
+            log->debug("\t\tmeas PE {}, pred PE {}",
+                int(flash->get_total_PE()*100)/100.,
+                int(bundle->get_total_pred_light()*100)/100.);
+            log->debug("\t\tsolution={}, consistent {}",
+                int(solution(n)*1e3)/1000.,
+                bundle->get_consistent_flag());
+        }
         n++;
       }
     }
