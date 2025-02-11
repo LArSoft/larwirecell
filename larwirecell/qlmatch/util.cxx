@@ -2,7 +2,7 @@
 
 #include "WireCellAux/SimpleTensor.h"
 #include "WireCellAux/SimpleTensorSet.h"
-#include "WireCellImg/PointCloudFacade.h"
+// #include "WireCellImg/PointCloudFacade.h"
 #include "WireCellUtil/Exceptions.h"
 
 #include <fstream>
@@ -148,6 +148,76 @@ void WireCell::QLMatch::dump_bee_flash(const ITensorSet::pointer& ts, const std:
     data["op_pes"].append(op_pes);
     data["op_pes_pred"].append(op_pes);
     // std::cout << std::endl;
+  }
+
+  // Write cfg to file
+  std::ofstream file(fn);
+  if (file.is_open()) {
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "    ";
+    writer["precision"] = 6; // significant digits
+    std::unique_ptr<Json::StreamWriter> jsonWriter(writer.newStreamWriter());
+    jsonWriter->write(data, &file);
+    file.close();
+  }
+  else {
+    raise<ValueError>("Failed to open file: " + fn);
+  }
+}
+
+
+
+void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const std::map<Cluster*, int>& cluster_idx_map, const std::string& fn)
+{
+  using spdlog::debug;
+
+  Json::Value data;
+  data["runNo"] = 0;
+  data["subRunNo"] = 0;
+  data["eventNo"] = 0;
+  data["geom"] = "sbnd";
+  data["op_t"] = Json::Value(Json::arrayValue);
+  data["op_pes"] = Json::Value(Json::arrayValue);
+  data["op_pes_pred"] = Json::Value(Json::arrayValue);
+  data["op_peTotal"] = Json::Value(Json::arrayValue);
+  data["cluster_id"] = Json::Value(Json::arrayValue);
+  data["op_nomatching_cluster_ids"] = Json::Value(Json::arrayValue);
+
+  for (auto it = f2bundle.begin(); it != f2bundle.end(); ++it) {
+    auto flash = it->first;
+    auto bundles = it->second;
+    data["op_t"].append(flash->get_time());
+    auto op_pes = Json::Value(Json::arrayValue);
+    double op_peTotal = 0;
+    for (const auto& pe : flash->get_PEs()) {
+      op_pes.append(pe);
+      op_peTotal += pe;
+    }
+    data["op_pes"].append(op_pes);
+    data["op_peTotal"].append(op_peTotal);
+    // assume the same length for now
+    auto op_cluster_id = Json::Value(Json::arrayValue);
+    std::vector<double> op_pes_pred_c(flash->get_PEs().size(), 0.0);
+    for (size_t i = 0; i < bundles.size(); i++) {
+      auto bundle = bundles.at(i);
+      if (!(bundle->get_consistent_flag())) continue;
+      auto cluster = bundle->get_main_cluster();
+      auto cluster_id = cluster_idx_map.at(cluster);
+      op_cluster_id.append(cluster_id);
+      auto pred_pes = bundle->get_pred_flash();
+      for (size_t j = 0; j < pred_pes.size(); j++) {
+        if (j >= op_pes_pred_c.size()) {
+          raise<ValueError>("Bundle pred_pes idx %d out of range %d", j, op_pes_pred_c.size());
+        }
+        op_pes_pred_c[j] += pred_pes[j];
+      }
+    }
+    auto op_pes_pred = Json::Value(Json::arrayValue);
+    for (const auto& pe : op_pes_pred_c) {
+      op_pes_pred.append(pe);
+    }
+    data["cluster_id"].append(op_cluster_id);
+    data["op_pes_pred"].append(op_pes_pred);
   }
 
   // Write cfg to file
