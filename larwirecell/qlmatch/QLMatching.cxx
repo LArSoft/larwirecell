@@ -338,15 +338,16 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   log->debug("nopdet {}", nopdet);
   log->debug("opdet_idx_v size {}", opdet_idx_v.size());
 
+  // create map between cluster object and cluster vector/matrix index
+  std::map<Cluster*, int> cluster_idx_map;
+
   // * first matching round
   {
     uint nbundle = pre_bundles.size();
     uint nflash = flash_bundles_map.size(); 
     uint ncluster = cluster_bundles_map.size();
 
-    // create map between cluster object and cluster vector/matrix index
     // create map between flash object and flash vector/matrix index
-    std::map<Cluster*, int> cluster_idx_map;
     std::map<Opflash*, int> flash_idx_map;
 
     int cluster_idx = 0;
@@ -651,8 +652,10 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     QLMatch::dump_bee_3d(
       *root_live.get(),
       String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-    QLMatch::dump_bee_flash(
-      invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+    // QLMatch::dump_bee_flash(
+    //   invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+    QLMatch::dump_bee_bundle(
+      flash_bundles_map, cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
   }
   log->debug(em("dump bee"));
 
