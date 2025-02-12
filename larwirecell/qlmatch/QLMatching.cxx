@@ -179,7 +179,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
   for (auto flash : flashes) {
     auto flash_time = flash->get_time();
-    auto flash_x_offset   = sign_offset*flash_time*1.563; // 1.563 is SBND drift velocity in mm/us
+    auto flash_x_offset   = sign_offset*flash_time*1.563e-3; // 1.563e-3 is SBND drift velocity in mm/ns
 
     // per flash mask 
     std::vector<uint> flash_opdet_mask = opdet_mask;
@@ -190,7 +190,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     }
 
     log->debug("flash time {} flash PE {} flash_x_offset {}", 
-                int(flash_time*100)/100.,
+                int(flash_time)/100.,
                 int(flash->get_total_PE()*100)/100.,
                 int(flash_x_offset*100)/100.);
 
@@ -649,7 +649,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
               log->debug("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, solution={}, consistent {}",
                 flash->get_flash_id(),
                 global_cluster_idx_map[bundle->get_main_cluster()],
-                int(100*flash->get_time())/100.,
+                int(flash->get_time())/1e3,
                 int(flash->get_total_PE()*100)/100.,
                 int(bundle->get_total_pred_light()*100)/100.,
                 int(solution(n)*1e3)/1000.,
@@ -677,7 +677,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     // QLMatch::dump_bee_flash(
     //   invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
     QLMatch::dump_bee_bundle(
-      flash_bundles_map, cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+      flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
   }
   log->debug(em("dump bee"));
 

@@ -68,7 +68,7 @@ void OpFlashSource::visit(art::Event& event)
 
   for (size_t iflash = 0; iflash < nflashes; ++iflash) {
     const auto& opflash = opflashes->at(iflash);
-    array[iflash][0] = opflash.Time(); // / units::microsecond; // TODO: check the unit
+    array[iflash][0] = opflash.Time() * units::microsecond;
     const auto& pes = opflash.PEs();
     if (pes.size() > m_npmts) {
       raise<ValueError>(
