@@ -148,15 +148,29 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   // check TimingTPCBundle object
   auto grouping = root_live->value.facade<Grouping>();
   std::vector<Cluster*> clusters = grouping->children();
+  std::sort(clusters.begin(), clusters.end(), [](const Cluster *cluster1, const Cluster *cluster2) {
+        return cluster1->get_length() > cluster2->get_length();
+        });
+  // create global maps 
+  std::map<Opflash*, int> global_flash_idx_map;
+  std::map<Cluster*, int> global_cluster_idx_map;
+
+  for (size_t i = 0; i < flashes.size(); ++i) {
+    global_flash_idx_map[flashes[i].get()] = i;
+  }
+
+  for (size_t i = 0; i < clusters.size(); ++i) {
+    global_cluster_idx_map[clusters[i]] = i;
+  }
+
   std::vector<TimingTPCBundle::pointer> all_bundles;
   TimingTPCBundleSet pre_bundles;
-  log->debug("checking TimingTPCBundle object");
 
   uint tpc = m_anode->ident();
   int  sign_offset =  (tpc == 0)? -1 : 1;
   double lo_x_bound = (tpc == 0)? -2000 : 0;
   double hi_x_bound = (tpc == 0)? 0 : 2000;
-  double qtol = 1.0; // TODO: add configurable, conversion from electrons to photons 
+  double qtol = 1.25; // TODO: add configurable, conversion from electrons to photons 
 
   for (size_t idet=0; idet < opdet_mask.size(); idet++){
     if ((tpc==0) && (idet%2==1)) opdet_mask[idet] = 0;
@@ -327,6 +341,10 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   double delta_charge = 0.01;
   double delta_light = 0.025;
 
+  // set "fudge factors" for the total error
+  double factor_pe = 0.05;
+  double factor_pe_err = 1.0;
+
   uint nopdet = 0;
   std::vector<int> opdet_idx_v;
   for (size_t idet=0; idet < opdet_mask.size(); idet++){
@@ -338,8 +356,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   log->debug("nopdet {}", nopdet);
   log->debug("opdet_idx_v size {}", opdet_idx_v.size());
 
-  // create map between cluster object and cluster vector/matrix index
-  std::map<Cluster*, int> cluster_idx_map;
 
   // * first matching round
   {
@@ -349,6 +365,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
     // create map between flash object and flash vector/matrix index
     std::map<Opflash*, int> flash_idx_map;
+    // create map between cluster object and cluster vector/matrix index
+    std::map<Cluster*, int> cluster_idx_map;
 
     int cluster_idx = 0;
     int flash_idx = 0;
@@ -371,13 +389,14 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t i=0; i<bundles.size(); i++){
         auto bundle = bundles.at(i);
         if (bundle->get_consistent_flag()){
-          log->debug("flash {}, cluster {}, consistent bundle: with ks_dis {}, chi2/ndf {}, ndf {}, predicted light {}",
+          log->debug("flash {}, cluster {}, consistent bundle: with ks_dis {}, chi2/ndf {}, ndf {}, pred light {}, meas light {}",
                     flash->get_flash_id(),
-                    cluster_idx_map[bundle->get_main_cluster()],
+                    global_cluster_idx_map[bundle->get_main_cluster()],
                     int(bundle->get_ks_dis()*1000)/1000.,
                     int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
                     bundle->get_ndf(),
-                    int(bundle->get_total_pred_light()*100)/100.);
+                    int(bundle->get_total_pred_light()*100)/100.,
+                    int(flash->get_total_PE()*100)/100.);
         }
       }
     }
@@ -405,9 +424,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (uint j=0; j<nopdet; j++){
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
-        // ! for now, use total measured PE as the error
-        // auto pe_err = flash->get_PE_err(opdet_idx);
-        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
+        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
         P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
@@ -420,9 +437,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j=0; j<nopdet; j++){
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          // ! for now, use total measured PE as the error
-          // auto pe_err  = flash->get_PE_err(opdet_idx);
-          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
+          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
@@ -481,7 +496,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     log->debug("solving");
     Ress::vector_t solution = Ress::solve(X, y, params, initial, weights);
 
-    TimingTPCBundleSelection to_be_removed;
     int n=0;
     for (auto it=flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it){
       auto flash = it->first;
@@ -492,7 +506,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         if (solution(n)>0.05)
           log->debug("flash+bundle: flash {}, cluster {}, consistent flag {} solution={}",
                     flash->get_flash_id(),
-                    cluster_idx_map[bundle->get_main_cluster()],
+                    global_cluster_idx_map[bundle->get_main_cluster()],
                     bundle->get_consistent_flag(),
                     solution(n));
         else{
@@ -512,6 +526,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     }
     remove_bundle_selection(to_be_removed, flash_bundles_map, cluster_bundles_map, flash_cluster_bundles_map);
     remove_bundle_selection(to_be_removed, pre_bundles);
+    to_be_removed.clear();
   } // end matching round
   // second matching round
   {
@@ -562,9 +577,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (uint j=0; j<nopdet; j++){
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
-        // ! for now, use total measured PE as the error
-        // auto pe_err = flash->get_PE_err(opdet_idx);
-        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
+        auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
       }
@@ -576,9 +589,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j=0; j<nopdet; j++){
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          // ! for now, use total measured PE as the error
-          // auto pe_err  = flash->get_PE_err(opdet_idx);
-          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*0.05,2) + pow(flash->get_PE_err(opdet_idx),2));
+          auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
@@ -635,21 +646,26 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto bundle = bundles.at(k);
 
         if (solution(n)>0.005){
-            log->debug("flash+bundle: flash {}, cluster {} time {}",
+              log->debug("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, solution={}, consistent {}",
                 flash->get_flash_id(),
-                cluster_idx_map[bundle->get_main_cluster()],
-                int(100*flash->get_time())/100.);
-            log->debug("\t\tmeas PE {}, pred PE {}",
+                global_cluster_idx_map[bundle->get_main_cluster()],
+                int(100*flash->get_time())/100.,
                 int(flash->get_total_PE()*100)/100.,
-                int(bundle->get_total_pred_light()*100)/100.);
-            log->debug("\t\tsolution={}, consistent {}",
+                int(bundle->get_total_pred_light()*100)/100.,
                 int(solution(n)*1e3)/1000.,
                 bundle->get_consistent_flag());
         }
+        else{
+          to_be_removed.push_back(bundle);
+        }
         n++;
       }
-    }
-  } // end second matching round
+    } 
+    remove_bundle_selection(to_be_removed, flash_bundles_map, cluster_bundles_map, flash_cluster_bundles_map);
+    remove_bundle_selection(to_be_removed, pre_bundles);
+    to_be_removed.clear();
+    
+  } // end second matching round}
   // BEE debug direct imaging output and dead blobs
   log->debug("done with matching");
   if (!m_bee_dir.empty()) {
