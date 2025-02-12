@@ -186,7 +186,6 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
   for (auto it = f2bundle.begin(); it != f2bundle.end(); ++it) {
     auto flash = it->first;
     auto bundles = it->second;
-    data["op_t"].append(flash->get_time()*1e-6);
     auto op_pes = Json::Value(Json::arrayValue);
     double op_peTotal = 0;
     for (const auto& pe : flash->get_PEs()) {
