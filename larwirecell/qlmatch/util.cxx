@@ -193,31 +193,25 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
       op_pes.append(pe);
       op_peTotal += pe;
     }
-    data["op_pes"].append(op_pes);
-    data["op_peTotal"].append(op_peTotal);
     // assume the same length for now
-    auto op_cluster_id = Json::Value(Json::arrayValue);
     std::vector<double> op_pes_pred_c(flash->get_PEs().size(), 0.0);
     for (size_t i = 0; i < bundles.size(); i++) {
       auto bundle = bundles.at(i);
       if (!(bundle->get_consistent_flag())) continue;
       auto cluster = bundle->get_main_cluster();
       auto cluster_id = cluster_idx_map.at(cluster);
+      auto op_cluster_id = Json::Value(Json::arrayValue);
       op_cluster_id.append(cluster_id);
-      auto pred_pes = bundle->get_pred_flash();
-      for (size_t j = 0; j < pred_pes.size(); j++) {
-        if (j >= op_pes_pred_c.size()) {
-          raise<ValueError>("Bundle pred_pes idx %d out of range %d", j, op_pes_pred_c.size());
-        }
-        op_pes_pred_c[j] += pred_pes[j];
+      auto op_pes_pred = Json::Value(Json::arrayValue);
+      for (const auto& pe : bundle->get_pred_flash()) {
+        op_pes_pred.append(pe);
       }
+      data["op_t"].append(flash->get_time()*1e-6);
+      data["op_pes"].append(op_pes);
+      data["op_peTotal"].append(op_peTotal);
+      data["cluster_id"].append(op_cluster_id);
+      data["op_pes_pred"].append(op_pes_pred);
     }
-    auto op_pes_pred = Json::Value(Json::arrayValue);
-    for (const auto& pe : op_pes_pred_c) {
-      op_pes_pred.append(pe);
-    }
-    data["cluster_id"].append(op_cluster_id);
-    data["op_pes_pred"].append(op_pes_pred);
   }
 
   // Write cfg to file
