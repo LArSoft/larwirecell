@@ -51,7 +51,7 @@ void OpFlashSource::configure(const WireCell::Configuration& cfg)
 
 void OpFlashSource::visit(art::Event& event)
 {
-  log->debug("OpFlashSource::visit {}", m_inputTag);
+  log->debug("OpFlashSource::visit {}", m_inputTag.encode());
   art::Handle<std::vector<recob::OpFlash>> opflashes;
   event.getByLabel(m_inputTag, opflashes);
   if (!opflashes.isValid()) {

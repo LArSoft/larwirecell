@@ -39,7 +39,6 @@ find_package(larcore REQUIRED EXPORT)
 find_package(lardata REQUIRED EXPORT)
 find_package(larevt REQUIRED EXPORT)
 find_package(lardataobj REQUIRED EXPORT)
-find_package(lardataalg REQUIRED EXPORT)
 find_package(larcoreobj REQUIRED EXPORT)
 find_package(larcorealg REQUIRED EXPORT)
 
