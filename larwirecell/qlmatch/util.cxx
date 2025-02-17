@@ -30,9 +30,15 @@ void WireCell::QLMatch::dump_bee_3d(const Points::node_t& root, const std::strin
   std::vector<float_t> q;
   std::vector<int_t> cluster_id;
   int_t cid = 0;
-  for (const auto cnode : root.children()) { // this is a loop through all clusters ...
-    Scope scope = {"3d", {"x", "y", "z"}};
-    const auto& sv = cnode->value.scoped_view(scope);
+
+  auto grouping = root.value.facade<Grouping>();
+  std::vector<Cluster*> clusters = grouping->children();
+  std::sort(clusters.begin(), clusters.end(), [](const Cluster *cluster1, const Cluster *cluster2) {
+        return cluster1->get_length() > cluster2->get_length();
+        });
+      
+  for (const auto cluster : clusters) { // this is a loop through all clusters ...
+    const auto& sv = cluster->sv3d();
 
     const auto& spcs = sv.pcs(); // spcs 'contains' all blobs in this cluster ...
     // int npoints = 0;
