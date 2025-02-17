@@ -13,14 +13,6 @@
             "CMAKE_CXX_STANDARD_REQUIRED" : {
                "type" : "BOOL",
                "value" : "ON"
-            },
-            "larwirecell_ADD_NOARCH_DIRS_INIT" : {
-               "type" : "INTERNAL",
-               "value" : "FHICL_DIR"
-            },
-            "larwirecell_FHICL_DIR_INIT" : {
-               "type" : "STRING",
-               "value" : "fcl"
             }
          },
          "description" : "Configuration settings translated from ups/product_deps",
