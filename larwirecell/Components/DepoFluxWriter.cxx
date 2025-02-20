@@ -66,8 +66,6 @@ WireCell::Configuration DepoFluxWriter::default_configuration() const
   // Provide file name into which validation text is dumped.
   cfg["debug_file"] = m_debug_file;
 
-  cfg["process_planes"] = Json::arrayValue;
-
   return cfg;
 }
 
@@ -128,8 +126,7 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
   }
 
   m_process_planes = {0, 1, 2};
-
-  if (cfg.isMember("process_planes")) {
+  if (cfg["process_planes"].isArray()) {
     m_process_planes.clear();
     for (auto jplane : cfg["process_planes"]) {
       m_process_planes.push_back(jplane.asInt());
