@@ -33,6 +33,15 @@ namespace WireCell::QLMatch {
     size_t m_count{0};
     // Currently can only be 2, TODO: remove this?
     size_t m_multiplicity{2};
+    // QL Matching configs 
+    bool   m_pmts{true};
+    bool   m_data{true};
+    std::vector<int> m_ch_mask{39, 69, 71, 85, 87, 115, 141, 197, 217, 221, 222, 223, 226, 245, 249, 66, 86, 138, 302};
+    bool   m_beamonly{false};
+    double  m_flash_minPE{500};       // PE 
+    double  m_flash_mintime{-1500e3}; // ns
+    double  m_flash_maxtime{ 1500e3};  // ns
+    double  m_QtoL{0.5};
 
     IAnodePlane::pointer m_anode{nullptr};
 

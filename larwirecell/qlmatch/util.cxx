@@ -202,7 +202,14 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
     std::vector<double> op_pes_pred_c(flash->get_PEs().size(), 0.0);
     for (size_t i = 0; i < bundles.size(); i++) {
       auto bundle = bundles.at(i);
-      if (!(bundle->get_consistent_flag())) continue;
+      // if (!(bundle->get_consistent_flag())) continue;
+      // if (bundle->get_total_pred_light() < 100) continue;
+      // auto meas_pe_tot = flash->get_total_PE();
+      auto pred_pe_tot = bundle->get_total_pred_light();
+      if (pred_pe_tot < 100) continue;
+      // if (abs(pred_pe_tot - meas_pe_tot) > 0.5 * meas_pe_tot) {
+      //   continue;
+      // }
       auto cluster = bundle->get_main_cluster();
       auto cluster_id = cluster_idx_map.at(cluster);
       auto op_cluster_id = Json::Value(Json::arrayValue);
