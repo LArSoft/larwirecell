@@ -8,5 +8,6 @@ cut
 *.log
 *.root
 *.tex
+.vscode
 latexmk-out
 auto
