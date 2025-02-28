@@ -30,9 +30,15 @@ void WireCell::QLMatch::dump_bee_3d(const Points::node_t& root, const std::strin
   std::vector<float_t> q;
   std::vector<int_t> cluster_id;
   int_t cid = 0;
-  for (const auto cnode : root.children()) { // this is a loop through all clusters ...
-    Scope scope = {"3d", {"x", "y", "z"}};
-    const auto& sv = cnode->value.scoped_view(scope);
+
+  auto grouping = root.value.facade<Grouping>();
+  std::vector<Cluster*> clusters = grouping->children();
+  std::sort(clusters.begin(), clusters.end(), [](const Cluster *cluster1, const Cluster *cluster2) {
+        return cluster1->get_length() > cluster2->get_length();
+        });
+      
+  for (const auto cluster : clusters) { // this is a loop through all clusters ...
+    const auto& sv = cluster->sv3d();
 
     const auto& spcs = sv.pcs(); // spcs 'contains' all blobs in this cluster ...
     // int npoints = 0;
@@ -196,7 +202,14 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
     std::vector<double> op_pes_pred_c(flash->get_PEs().size(), 0.0);
     for (size_t i = 0; i < bundles.size(); i++) {
       auto bundle = bundles.at(i);
-      if (!(bundle->get_consistent_flag())) continue;
+      // if (!(bundle->get_consistent_flag())) continue;
+      // if (bundle->get_total_pred_light() < 100) continue;
+      // auto meas_pe_tot = flash->get_total_PE();
+      auto pred_pe_tot = bundle->get_total_pred_light();
+      if (pred_pe_tot < 100) continue;
+      // if (abs(pred_pe_tot - meas_pe_tot) > 0.5 * meas_pe_tot) {
+      //   continue;
+      // }
       auto cluster = bundle->get_main_cluster();
       auto cluster_id = cluster_idx_map.at(cluster);
       auto op_cluster_id = Json::Value(Json::arrayValue);
@@ -205,7 +218,7 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
       for (const auto& pe : bundle->get_pred_flash()) {
         op_pes_pred.append(pe);
       }
-      data["op_t"].append(flash->get_time()*1e-6);
+      data["op_t"].append(flash->get_time()*1e-3);
       data["op_pes"].append(op_pes);
       data["op_peTotal"].append(op_peTotal);
       data["cluster_id"].append(op_cluster_id);

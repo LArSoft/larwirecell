@@ -50,6 +50,22 @@ void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg
   m_inpath = get(cfg, "inpath", m_inpath);
   m_outpath = get(cfg, "outpath", m_outpath);
   m_bee_dir = get(cfg, "bee_dir", m_bee_dir);
+
+  m_pmts = get(cfg, "pmts", m_pmts);
+  m_data = get(cfg, "data", m_data);
+  m_beamonly = get(cfg, "beamonly", m_beamonly);
+
+  Configuration jch_mask = cfg["ch_mask"];
+  for (const auto& jch : jch_mask) {
+    m_ch_mask.push_back(jch.asInt());
+  }
+  m_flash_minPE = get(cfg, "flash_minPE", m_flash_minPE);
+  if (m_beamonly) {
+    m_flash_mintime = -1e3;
+    m_flash_maxtime =  5e3;
+  }
+
+  m_QtoL = get(cfg, "QtoL", m_QtoL);
 }
 
 WireCell::Configuration WireCell::QLMatch::QLMatching::default_configuration() const
@@ -59,6 +75,17 @@ WireCell::Configuration WireCell::QLMatch::QLMatching::default_configuration() c
   cfg["inpath"] = m_inpath;
   cfg["outpath"] = m_outpath;
   cfg["bee_dir"] = m_bee_dir;
+
+  cfg["pmts"] = m_pmts; 
+  cfg["data"] = m_data;
+  cfg["beamonly"] = m_beamonly;
+  cfg["ch_mask"] = Json::arrayValue;
+
+  cfg["flash_minPE"] = m_flash_minPE;
+  cfg["flash_mintime"] = m_flash_mintime;
+  cfg["flash_maxtime"] = m_flash_maxtime;
+  cfg["QtoL"] = m_QtoL;
+
   return cfg;
 }
 
@@ -88,11 +115,14 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
   // ! start things to move to config block 
 
-  bool pmts_only = true;
-
   std::vector<uint> opdet_mask;
-  if (pmts_only)
-    opdet_mask = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0};
+  if (m_pmts) opdet_mask = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0};
+  
+  if (m_data){
+    for (size_t idet=0; idet < m_ch_mask.size(); idet++){
+      opdet_mask[m_ch_mask[idet]] = 0;
+    }
+  }
 
   std::vector<double> m_VUVEfficiency{0., 0., 0., 0., 0., 0., 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0., 0., 0., 0., 0., 0., 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0., 0., 0.,0., 0., 0., 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0., 0., 0.,0., 0., 0., 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0., 0., 0., 0., 0., 0.,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0., 0., 0., 0., 0., 0.,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0., 0., 0., 0., 0., 0., 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0.021, 0.021, 0.021,0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021,0., 0., 0., 0., 0., 0., 0.096 , 0.096 , 0.096 ,0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 , 0.096 ,0.021, 0.021, 0.021, 0.021, 0.021, 0.021};
   std::vector<double> m_VISEfficiency{0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0., 0., 0., 0., 0., 0., 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.152 , 0.152 , 0.152 , 0.152 , 0.152 , 0.152 , 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0., 0., 0., 0., 0., 0., 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0., 0., 0.,0., 0., 0., 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.152 , 0.152 , 0.152 ,0.152 , 0.152 , 0.152 , 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0., 0., 0.,0., 0., 0., 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0., 0., 0., 0., 0., 0.,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.152 , 0.152 , 0.152 , 0.152 , 0.152 , 0.152 ,0., 0., 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0., 0., 0., 0., 0., 0.,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0., 0., 0., 0., 0., 0., 0.014, 0.014, 0.014,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014,0.152 , 0.152 , 0.152 , 0.152 , 0.152 , 0.152 , 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0.,0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.104 , 0.104 , 0.104 ,0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 , 0.104 ,0., 0., 0., 0., 0., 0.};
@@ -141,7 +171,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   for (int iflash = 0; iflash < nrow; ++iflash) {
     // Opflash flash(ten, iflash, 0.0, nchan);
     Opflash::pointer flash = std::make_shared<Opflash>(ten, iflash, 0.0, nchan);
-    if (flash->get_total_PE() < 50) { continue; }
+    if (flash->get_time() < m_flash_mintime || flash->get_time() > m_flash_maxtime) { continue; }
+    if (flash->get_total_PE() < m_flash_minPE) { continue; }
     flashes.push_back(flash);
   }
 
@@ -170,7 +201,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   int  sign_offset =  (tpc == 0)? -1 : 1;
   double lo_x_bound = (tpc == 0)? -2000 : 0;
   double hi_x_bound = (tpc == 0)? 0 : 2000;
-  double qtol = 1.25; // TODO: add configurable, conversion from electrons to photons 
 
   for (size_t idet=0; idet < opdet_mask.size(); idet++){
     if ((tpc==0) && (idet%2==1)) opdet_mask[idet] = 0;
@@ -186,7 +216,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     // ! warning: this is a temporary fix to identify simulated saturated PMTs
     for (size_t idet=0; idet < size_t(flash->get_num_channels()); idet++){
       auto pe_det = flash->get_PE(idet);
-      if ((flash->get_total_PE() > 5000) & (pe_det == 0)) flash_opdet_mask[idet] = 0;
+      if ((flash->get_total_PE() > 5000) & (pe_det == 0) & (m_data==false)) flash_opdet_mask[idet] = 0;
     }
 
     log->debug("flash time {} flash PE {} flash_x_offset {}", 
@@ -239,7 +269,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
           if ( abs(x) > 1950 && bundle->get_flag_close_to_PMT() == false)
             bundle->set_flag_close_to_PMT(true);
 
-          if (npt_outside_drift > 0.2*npt){
+          if (npt_outside_drift > 0.25*npt){
             drifted_outside = true;
             break;
           }
@@ -257,7 +287,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
             auto ref_vis = reflected_visibilities.at(idet);
             auto dir_eff = m_VUVEfficiency.at(idet);
             auto ref_eff = m_VISEfficiency.at(idet);
-            pred_flash.at(idet) += q * qtol * dir_vis * dir_eff + q * qtol * ref_vis * ref_eff;
+            pred_flash.at(idet) += q * m_QtoL * dir_vis * dir_eff + q * m_QtoL * ref_vis * ref_eff;
           }
         }
         if (drifted_outside) break;
@@ -271,15 +301,28 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       }
 
       bundle->set_pred_flash(pred_flash);
+      if (bundle->get_total_pred_light() <1) continue;
       bundle->examine_bundle();
+
+
       if (bundle->get_ks_dis() ==1){
         bundle->set_potential_bad_match_flag(true);
         continue;
       }
-      if (bundle->get_chi2()/bundle->get_ndf() > 1e6){
+      if (bundle->get_chi2()/bundle->get_ndf() > 1e4){
         bundle->set_potential_bad_match_flag(true);
         continue;
       }
+
+      log->debug("flash {} and cluster {} meas PE {} pred PE {} npts {} ks_dis {} chi2/ndf {} ndf {}",
+        flash->get_flash_id(), global_cluster_idx_map[cluster],
+        int(flash->get_total_PE()*100)/100.,
+        int(bundle->get_total_pred_light()*100)/100.,
+        npt,
+        int(bundle->get_ks_dis()*1000)/1000.,
+        int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
+        bundle->get_ndf());
+
       pre_bundles.insert(bundle);
 
     } // end first cluster loop
@@ -342,7 +385,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   double delta_light = 0.025;
 
   // set "fudge factors" for the total error
-  double factor_pe = 0.05;
+  double factor_pe = 0.2;
   double factor_pe_err = 1.0;
 
   uint nopdet = 0;
@@ -443,8 +486,10 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
 
-        if (bundle->get_flag_close_to_PMT()){
-          weights(ik) = 0.5;
+        auto meas_pe_tot = flash->get_total_PE();
+        auto pred_pe_tot = bundle->get_total_pred_light();
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){
+          weights(ik) = 0.25;
           ik++;
         }
         else{
@@ -481,7 +526,9 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t initial  = Ress::vector_t::Zero(nbundle + nflash);
     for (size_t n=0; n <pairs.size(); n++){
       auto bundle = flash_cluster_bundles_map[pairs.at(n)];
-      if (bundle->get_consistent_flag()){
+      auto meas_pe_tot = bundle->get_flash()->get_total_PE();
+      auto pred_pe_tot = bundle->get_total_pred_light();
+      if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){        
         initial(n) = 1.0;
       }
       else //if (bundle->get_flag_close_to_PMT())
@@ -503,7 +550,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
 
-        if (solution(n)>0.05)
+        if (solution(n)>0.05 || m_beamonly)
           log->debug("flash+bundle: flash {}, cluster {}, consistent flag {} solution={}",
                     flash->get_flash_id(),
                     global_cluster_idx_map[bundle->get_main_cluster()],
@@ -594,15 +641,26 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         }
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
+        
+        auto meas_pe_tot = flash->get_total_PE();
+        auto pred_pe_tot = bundle->get_total_pred_light();
 
-        if (bundle->get_flag_close_to_PMT()){
-          weights(ik) = 0.5;
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){
+          weights(ik) = 0.25;
           ik++;
         }
         else{
           weights(ik) = 1.0;
           ik++;
         }
+        // if (bundle->get_flag_close_to_PMT()){
+        //   weights(ik) = 0.5;
+        //   ik++;
+        // }
+        // else{
+        //   weights(ik) = 1.0;
+        //   ik++;
+        // }
       } // loop over bundles in flash 
       i++;
     } // end loop over flashes
@@ -625,7 +683,9 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t initial  = Ress::vector_t::Zero(nbundle);
     for (size_t n=0; n <pairs.size(); n++){
       auto bundle = flash_cluster_bundles_map[pairs.at(n)];
-      if (bundle->get_consistent_flag()){
+      auto meas_pe_tot = bundle->get_flash()->get_total_PE();
+      auto pred_pe_tot = bundle->get_total_pred_light();
+      if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){
         initial(n) = 1.0;
       }
       else //if (bundle->get_flag_close_to_PMT())
@@ -645,14 +705,16 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
 
-        if (solution(n)>0.005){
-              log->debug("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, solution={}, consistent {}",
+        if (solution(n)>0.05 || m_beamonly){
+              log->debug("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, solution={}, ks_dis {}, chi2/ndf {}, consistent {}",
                 flash->get_flash_id(),
                 global_cluster_idx_map[bundle->get_main_cluster()],
                 int(flash->get_time())/1e3,
                 int(flash->get_total_PE()*100)/100.,
                 int(bundle->get_total_pred_light()*100)/100.,
-                int(solution(n)*1e3)/1000.,
+                int(solution(n)*1e4)/10000.,
+                int(bundle->get_ks_dis()*1000)/1000.,
+                int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
                 bundle->get_consistent_flag());
         }
         else{
@@ -665,7 +727,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     remove_bundle_selection(to_be_removed, pre_bundles);
     to_be_removed.clear();
     
-  } // end second matching round}
+  } // end second matching round
+
   // BEE debug direct imaging output and dead blobs
   log->debug("done with matching");
   if (!m_bee_dir.empty()) {
