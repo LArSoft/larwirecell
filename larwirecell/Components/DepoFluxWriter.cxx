@@ -125,6 +125,14 @@ void DepoFluxWriter::configure(const WireCell::Configuration& cfg)
     }
   }
 
+  m_process_planes = {0, 1, 2};
+  if (cfg["process_planes"].isArray()) {
+    m_process_planes.clear();
+    for (auto jplane : cfg["process_planes"]) {
+      m_process_planes.push_back(jplane.asInt());
+    }
+  }
+
   // Last, per-plane, arbitrary time offsets in terms of ticks.
   const double reftime = get(cfg, "reference_time", 0);
   std::vector<double> time_offsets = {-reftime, -reftime, -reftime};
@@ -239,6 +247,11 @@ void DepoFluxWriter::visit(art::Event& event)
     for (auto plane : face->planes()) {
       int iplane = plane->planeid().index();
       if (iplane < 0) continue;
+
+      if (std::find(m_process_planes.begin(), m_process_planes.end(), iplane) ==
+          m_process_planes.end()) {
+        continue;
+      }
 
       const Pimpos* pimpos = plane->pimpos();
       auto& wires = plane->wires();

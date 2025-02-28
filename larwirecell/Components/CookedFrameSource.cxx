@@ -7,6 +7,7 @@
 
 #include "TTimeStamp.h"
 
+#include "WireCellAux/FrameTools.h"
 #include "WireCellAux/SimpleFrame.h"
 #include "WireCellAux/SimpleTrace.h"
 #include "WireCellUtil/NamedFactory.h"
@@ -42,24 +43,38 @@ void CookedFrameSource::configure(const WireCell::Configuration& cfg)
   m_summary_scale = get(cfg, "summary_scale", m_summary_scale);
   m_tick = get(cfg, "tick", m_tick);
   m_nticks = get(cfg, "nticks", m_nticks);
-
-  for (auto recobwire_tag : cfg["recobwire_tags"]) {
-    m_recobwire_tags.push_back(recobwire_tag.asString());
-  }
   for (auto jtag : cfg["frame_tags"]) {
     m_frame_tags.push_back(jtag.asString());
-  }
-  for (auto jtag : cfg["trace_tags"]) {
-    m_trace_tags.push_back(jtag.asString());
-  }
-  for (auto summary_tag : cfg["summary_tags"]) {
-    m_summary_tags.push_back(summary_tag.asString());
   }
   for (auto mask_tag : cfg["input_mask_tags"]) {
     m_input_mask_tags.push_back(mask_tag.asString());
   }
   for (auto mask_tag : cfg["output_mask_tags"]) {
     m_output_mask_tags.push_back(mask_tag.asString());
+  }
+  if (m_input_mask_tags.size() != m_output_mask_tags.size()) {
+    raise<ValueError>("m_input_mask_tags.size %d != m_output_mask_tags.size %d",
+                      m_input_mask_tags.size(),
+                      m_output_mask_tags.size());
+  }
+
+  const std::string art_tag = cfg["art_tag"].asString();
+  if (!art_tag.empty()) {
+    l->warn("CookedFrameSource: art_tag is set, running in back-compat mode");
+    m_recobwire_tags.push_back(art_tag);
+    m_trace_tags.push_back("");
+    m_summary_tags.push_back("");
+    return;
+  }
+
+  for (auto recobwire_tag : cfg["recobwire_tags"]) {
+    m_recobwire_tags.push_back(recobwire_tag.asString());
+  }
+  for (auto jtag : cfg["trace_tags"]) {
+    m_trace_tags.push_back(jtag.asString());
+  }
+  for (auto summary_tag : cfg["summary_tags"]) {
+    m_summary_tags.push_back(summary_tag.asString());
   }
   if (m_recobwire_tags.size() != m_summary_tags.size()) {
     raise<ValueError>("m_recobwire_tags.size %d != m_summary_tags.size %d",
@@ -70,11 +85,6 @@ void CookedFrameSource::configure(const WireCell::Configuration& cfg)
     raise<ValueError>("m_recobwire_tags.size %d != m_trace_tags.size %d",
                       m_recobwire_tags.size(),
                       m_trace_tags.size());
-  }
-  if (m_input_mask_tags.size() != m_output_mask_tags.size()) {
-    raise<ValueError>("m_input_mask_tags.size %d != m_output_mask_tags.size %d",
-                      m_input_mask_tags.size(),
-                      m_output_mask_tags.size());
   }
 }
 
@@ -196,6 +206,7 @@ void CookedFrameSource::visit(art::Event& event)
     sframe->tag_frame(tag);
   }
   for (size_t ind = 0; ind < m_trace_tags.size(); ++ind) {
+    if (m_trace_tags[ind].empty()) { continue; }
     auto recobwire_tag = m_recobwire_tags[ind];
     auto trace_tag = m_trace_tags[ind];
     auto summary_tag = m_summary_tags[ind];
@@ -220,6 +231,7 @@ bool CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)
   frame = nullptr;
   if (m_frames.empty()) { return false; }
   frame = m_frames.front();
+  l->debug("CookedFrameSource output {}", Aux::taginfo(frame));
   m_frames.pop_front();
   return true;
 }

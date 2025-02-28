@@ -2,7 +2,7 @@
 //#include "art/Framework/Principal/Handle.h"
 
 #include "larcore/CoreUtils/ServiceUtil.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "lardataobj/RecoBase/Wire.h"
 
 #include "art/Framework/Core/EDProducer.h"
@@ -86,6 +86,7 @@ void CookedFrameSink::visit(art::Event& event)
 
   std::cerr << "CookedFrameSink: got " << m_frame->traces()->size() << " total traces\n";
 
+  auto const& wireReadoutGeom = art::ServiceHandle<geo::WireReadout const>()->Get();
   for (auto tag : m_frame_tags) {
 
     auto traces = tagged_traces(m_frame, tag);
@@ -104,8 +105,6 @@ void CookedFrameSink::visit(art::Event& event)
       const int chid = trace->channel();
       const auto& charge = trace->charge();
 
-      //std::cerr << tag << ": chid=" << chid << " tbin=" << tbin << " nq=" << charge.size() << std::endl;
-
       // enforce number of ticks if we are so configured.
       size_t ncharge = charge.size();
       int nticks = tbin + ncharge;
@@ -120,13 +119,12 @@ void CookedFrameSink::visit(art::Event& event)
       // numbers are identified with WCT channel IDs.
       // Fact: the plane view for the ICARUS induction-1 is "geo::kY",
       // instead of "geo::kU"
-      auto const& gc = *lar::providerFrom<geo::Geometry>();
-      auto view = gc.View(chid);
+      auto view = wireReadoutGeom.View(chid);
 
       // what about those pesky channel map masks?
       // they are dropped for now.
 
-      outwires->emplace_back(recob::Wire(roi, chid, view));
+      outwires->emplace_back(roi, chid, view);
     }
     std::cerr << "CookedFrameSink saving " << outwires->size() << " recob::Wires named \"" << tag
               << "\"\n";

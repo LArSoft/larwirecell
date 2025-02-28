@@ -173,8 +173,6 @@ defaultqual	e26
 #     Wirecell data.
 #
 ####################################
-fcldir	product_dir	fcl
-####################################
 
 ####################################
 # Product table.
@@ -247,9 +245,8 @@ fcldir	product_dir	fcl
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larevt		v09_10_07
-larsim      v09_45_00
-wirecell	v0_27_1
+larevt		v10_00_05
+wirecell	v0_29_5
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
