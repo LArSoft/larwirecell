@@ -107,7 +107,7 @@ namespace WireCell::QLMatch {
     double strength;
 
     int m_nchan;
-    std::vector<double> pred_flash; // prediction
+    std::vector<double> pred_flash;       // prediction
     std::vector<Cluster*> other_clusters; // save every other one
     std::vector<Cluster*> more_clusters;  // save ones satisfying the cut
   };
@@ -116,7 +116,8 @@ namespace WireCell::QLMatch {
   typedef std::vector<TimingTPCBundle::pointer> TimingTPCBundleSelection;
   typedef std::set<TimingTPCBundle::pointer> TimingTPCBundleSet;
   typedef std::map<Opflash*, TimingTPCBundleSelection> FlashBundlesMap;
-  typedef std::map<WireCell::PointCloud::Facade::Cluster*, TimingTPCBundleSelection> ClusterBundlesMap;
+  typedef std::map<WireCell::PointCloud::Facade::Cluster*, TimingTPCBundleSelection>
+    ClusterBundlesMap;
 
 } // namespace WCP
 

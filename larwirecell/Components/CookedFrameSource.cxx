@@ -213,7 +213,7 @@ void CookedFrameSource::visit(art::Event& event)
     if (tag2summaryh.find(summary_tag) != tag2summaryh.end()) {
       std::vector<double> summary;
       for (auto val : *tag2summaryh[summary_tag]) {
-        summary.push_back(val*m_summary_scale);
+        summary.push_back(val * m_summary_scale);
       }
       sframe->tag_traces(trace_tag, tag2indices[recobwire_tag], summary);
     }

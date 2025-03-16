@@ -33,10 +33,10 @@ void WireCell::QLMatch::dump_bee_3d(const Points::node_t& root, const std::strin
 
   auto grouping = root.value.facade<Grouping>();
   std::vector<Cluster*> clusters = grouping->children();
-  std::sort(clusters.begin(), clusters.end(), [](const Cluster *cluster1, const Cluster *cluster2) {
-        return cluster1->get_length() > cluster2->get_length();
-        });
-      
+  std::sort(clusters.begin(), clusters.end(), [](const Cluster* cluster1, const Cluster* cluster2) {
+    return cluster1->get_length() > cluster2->get_length();
+  });
+
   for (const auto cluster : clusters) { // this is a loop through all clusters ...
     const auto& sv = cluster->sv3d();
 
@@ -171,9 +171,9 @@ void WireCell::QLMatch::dump_bee_flash(const ITensorSet::pointer& ts, const std:
   }
 }
 
-
-
-void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const std::map<Cluster*, int>& cluster_idx_map, const std::string& fn)
+void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle,
+                                        const std::map<Cluster*, int>& cluster_idx_map,
+                                        const std::string& fn)
 {
   using spdlog::debug;
 
@@ -218,7 +218,7 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle, const s
       for (const auto& pe : bundle->get_pred_flash()) {
         op_pes_pred.append(pe);
       }
-      data["op_t"].append(flash->get_time()*1e-3);
+      data["op_t"].append(flash->get_time() * 1e-3);
       data["op_pes"].append(op_pes);
       data["op_peTotal"].append(op_peTotal);
       data["cluster_id"].append(op_cluster_id);

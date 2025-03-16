@@ -41,8 +41,8 @@ namespace wcls {
     std::deque<WireCell::IFrame::pointer> m_frames;
     double m_tick;
     int m_nticks;
-    double m_frame_scale{1.}; // scale up input recob::Wire by this factor
-    double m_summary_scale{1.}; // scale up input recob::Wire by this factor
+    double m_frame_scale{1.};   // scale up input recob::Wire by this factor
+    double m_summary_scale{1.}; // scale up input summary by this factor
     std::vector<std::string> m_frame_tags;
     std::vector<std::string> m_recobwire_tags;
     std::vector<std::string> m_trace_tags;

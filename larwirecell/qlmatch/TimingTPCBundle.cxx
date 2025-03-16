@@ -570,9 +570,7 @@ bool TimingTPCBundle::examine_bundle()
     }
   }
 
-  if (total_predicted > 0) {
-    ks_dis = calc_ks_test(measured_dist, predicted_dist);
-  }
+  if (total_predicted > 0) { ks_dis = calc_ks_test(measured_dist, predicted_dist); }
 
   chi2 = 0;
   ndf = 0;
@@ -581,13 +579,16 @@ bool TimingTPCBundle::examine_bundle()
   int nvalidopdets = 0;
   // Calculate chi-square statistics
   for (int j = 0; j != m_nchan; j++) {
-    if (opdet_mask[j] == 0) continue;
-    else nvalidopdets++;
+    if (opdet_mask[j] == 0)
+      continue;
+    else
+      nvalidopdets++;
     double cur_chi2 = 0;
 
     // TODO: add config for noise threshold of PE
-    if (pe[j] < 1  && pred_pe[j] < 1) {}
-    else ndf++;
+    if (pe[j] < 1 && pred_pe[j] < 1) {}
+    else
+      ndf++;
     // * can add different chisq calculation (or different denominator) for cluster flags
     cur_chi2 = pow(pred_pe[j] - pe[j], 2) / (pe[j] + pow(pe_err[j], 2));
     chi2 += cur_chi2;
@@ -597,7 +598,7 @@ bool TimingTPCBundle::examine_bundle()
     // * can do some special treatment when the worst chi2 is from a channel with no measured light
     // if (cur_chi2 > max_chi2) {
     //   max_chi2 = cur_chi2;
-      // max_bin = j;
+    // max_bin = j;
     // }
   }
   // if (pe[max_bin] == 0 && pred_pe[max_bin] > 0) { chi2 -= max_chi2 - 1; }
@@ -607,5 +608,7 @@ bool TimingTPCBundle::examine_bundle()
   if (ks_dis < 0.06 && ndf >= 3 && chi2 < ndf * nvalidopdets) { flag_high_consistent = true; }
 
   if (flag_high_consistent) { return true; }
-  else { return false;}
+  else {
+    return false;
+  }
 }
