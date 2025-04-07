@@ -37,10 +37,10 @@ WireCell::QLMatch::Opflash::Opflash(const ITensor::pointer ten,
   for (int i = 0; i < nchan; ++i) {
     PE[i] = ten_data[idx][i + 1];
     if (PE[i]<1){
-      PE_err[i] = 0.05;
+      PE_err[i] = 0.25;
     }
     else{
-      PE_err[i] = 0.05*PE[i]; // pow(0.1*PE[i],2);
+      PE_err[i] = 0.25*PE[i]; // pow(0.1*PE[i],2);
     }
     total_PE += PE[i];
     if (PE[i] > threshold) { fired_channels.push_back(i); }
