@@ -383,6 +383,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   double lambda = 0.1;
   double delta_charge = 0.01;
   double delta_light = 0.025;
+  double delta_shape = 1.0;
 
   // set "fudge factors" for the total error
   // double factor_pe = 1.0;
@@ -492,12 +493,12 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
-        if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.3*meas_pe_tot){
           weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot;
           ik++;
         }
         else{
-          weights(ik) = 0.25;
+          weights(ik) = 0.3;
           ik++;
         }
       } // loop over bundles in flash 
@@ -533,7 +534,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       // auto bundle = flash_cluster_bundles_map[pairs.at(n)];
       // auto meas_pe_tot = bundle->get_flash()->get_total_PE();
       // auto pred_pe_tot = bundle->get_total_pred_light();
-      // if (abs(pred_pe_tot - meas_pe_tot) < 0.25*meas_pe_tot){        
+      // if (abs(pred_pe_tot - meas_pe_tot) < 0.3*meas_pe_tot){        
       //   initial(n) = 1.0;
       // }
       // else //if (bundle->get_flag_close_to_PMT())
@@ -544,6 +545,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::Params params;
     params.model = Ress::lasso;
     params.lambda = lambda;
+    // params.tolerance = 1e-2;
 
     log->debug("solving");
     Ress::vector_t solution = Ress::solve(X, y, params, initial, weights);
@@ -652,12 +654,12 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
 
-        if (abs(pred_pe_tot - meas_pe_tot) > 0.25*meas_pe_tot){
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.3*meas_pe_tot){
           weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot;
           ik++;
         }
         else{
-          weights(ik) = 0.25;
+          weights(ik) = 0.3;
           ik++;
         }
         // if (bundle->get_flag_close_to_PMT()){
@@ -693,7 +695,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       auto bundle = flash_cluster_bundles_map[pairs.at(n)];
       // auto meas_pe_tot = bundle->get_flash()->get_total_PE();
       // auto pred_pe_tot = bundle->get_total_pred_light();
-      // if (abs(pred_pe_tot - meas_pe_tot) < 0.25*meas_pe_tot){
+      // if (abs(pred_pe_tot - meas_pe_tot) < 0.3*meas_pe_tot){
       //   initial(n) = 1.0;
       // }
       // else //if (bundle->get_flag_close_to_PMT())
@@ -702,6 +704,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::Params params;
     params.model = Ress::lasso;
     params.lambda = lambda;
+    // params.tolerance = 1e-2;
 
     log->debug("solving");
     Ress::vector_t solution = Ress::solve(X, y, params, initial, weights);
