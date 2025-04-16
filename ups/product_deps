@@ -246,8 +246,8 @@ defaultqual	e26
 ####################################
 product		version		qual	flags		<table_format=2>
 larevt		  v10_00_07
-larsim      v10_02_03
-wirecell	  v0_30_2
+larsim      v10_03_00
+wirecell	  v0_30_3
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
