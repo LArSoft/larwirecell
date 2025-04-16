@@ -383,7 +383,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   double lambda = 0.1;
   double delta_charge = 0.01;
   double delta_light = 0.025;
-  double delta_shape = 1.0;
+  double delta_shape = 0.01; // used for 2nd matching round only
 
   // set "fudge factors" for the total error
   // double factor_pe = 1.0;
@@ -469,7 +469,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
         auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-        // auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
         P(i*nopdet + j, nbundle + i) = pe/pe_err; // measurement alone term 
@@ -483,13 +482,10 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
           auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-          // auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
-
-        // weights(ik) = 1.0;
 
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
@@ -531,14 +527,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t initial  = Ress::vector_t::Zero(nbundle + nflash);
     for (size_t n=0; n <pairs.size(); n++){
       initial(n) = 1.0;
-      // auto bundle = flash_cluster_bundles_map[pairs.at(n)];
-      // auto meas_pe_tot = bundle->get_flash()->get_total_PE();
-      // auto pred_pe_tot = bundle->get_total_pred_light();
-      // if (abs(pred_pe_tot - meas_pe_tot) < 0.3*meas_pe_tot){        
-      //   initial(n) = 1.0;
-      // }
-      // else //if (bundle->get_flag_close_to_PMT())
-      //   initial(n) = 0.5;
     }
     log->debug("initial dim {}", initial.rows());
 
@@ -631,45 +619,35 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
         auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-        // auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
 
         M(i*nopdet + j) = pe/pe_err; // measurement term 
       }
 
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
+        auto ks_dis = bundle->get_ks_dis();
         auto pred_flash = bundle->get_pred_flash();
 
         for (uint j=0; j<nopdet; j++){
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
           auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-          // auto pe_err = sqrt(pow(flash->get_PE(opdet_idx)*factor_pe,2) + pow(flash->get_PE_err(opdet_idx)*factor_pe_err,2));
           P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
         }
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
-        // weights(ik) = 1.0;
         
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
 
         if (abs(pred_pe_tot - meas_pe_tot) > 0.3*meas_pe_tot){
-          weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot;
+          weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot + delta_shape*nopdet*ks_dis/lambda;
           ik++;
         }
         else{
-          weights(ik) = 0.3;
+          weights(ik) = 0.3 + delta_shape*nopdet*ks_dis/lambda;
           ik++;
         }
-        // if (bundle->get_flag_close_to_PMT()){
-        //   weights(ik) = 0.5;
-        //   ik++;
-        // }
-        // else{
-        //   weights(ik) = 1.0;
-        //   ik++;
-        // }
       } // loop over bundles in flash 
       i++;
     } // end loop over flashes
@@ -693,13 +671,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     for (size_t n=0; n <pairs.size(); n++){
       initial(n) = 1.0;
       auto bundle = flash_cluster_bundles_map[pairs.at(n)];
-      // auto meas_pe_tot = bundle->get_flash()->get_total_PE();
-      // auto pred_pe_tot = bundle->get_total_pred_light();
-      // if (abs(pred_pe_tot - meas_pe_tot) < 0.3*meas_pe_tot){
-      //   initial(n) = 1.0;
-      // }
-      // else //if (bundle->get_flag_close_to_PMT())
-      //   initial(n) = 0.5;
     }
     Ress::Params params;
     params.model = Ress::lasso;
@@ -748,8 +719,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     QLMatch::dump_bee_3d(
       *root_live.get(),
       String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-    // QLMatch::dump_bee_flash(
-    //   invec[1], String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
     QLMatch::dump_bee_bundle(
       flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
   }
