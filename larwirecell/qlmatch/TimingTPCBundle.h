@@ -49,20 +49,8 @@ namespace WireCell::QLMatch {
     void set_opdet_mask(const std::vector<uint>& mask) { opdet_mask = mask; };
 
     bool examine_bundle();
-
-    /// TODO: these two are similar, merge them?
-    /// TODO: hardcoded cuts, make them configurable?
-    bool examine_bundle(TimingTPCBundle* bundle,
-                        const std::vector<double>& cos_pe_low,
-                        const std::vector<double>& cos_pe_mid);
-    bool examine_bundle_rank(TimingTPCBundle* bundle,
-                             const std::vector<double>& cos_pe_low,
-                             const std::vector<double>& cos_pe_mid);
-
-    void add_bundle(TimingTPCBundle* bundle,
-                    const std::vector<double>& cos_pe_low,
-                    const std::vector<double>& cos_pe_mid);
-    bool examine_beam_bundle();
+    bool examine_bundle(TimingTPCBundle* new_bundle);
+    void add_bundle(TimingTPCBundle* new_bundle);
 
     double get_chi2() { return chi2; };
     void set_chi2(double value) { chi2 = value; };
