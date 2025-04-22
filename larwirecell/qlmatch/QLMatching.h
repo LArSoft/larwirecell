@@ -52,6 +52,7 @@ namespace WireCell::QLMatch {
 
     void remove_bundle_selection(TimingTPCBundleSelection to_be_removed, TimingTPCBundleSet& bundle_set);
     void remove_bundle_selection(TimingTPCBundleSelection to_be_removed, FlashBundlesMap& flash_bundles_map, ClusterBundlesMap& cluster_bundles_map, std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map);
+    void organize_bundles(TimingTPCBundleSelection& results_bundles, std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map);
   };
 }
 

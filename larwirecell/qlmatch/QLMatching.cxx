@@ -670,7 +670,6 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t initial  = Ress::vector_t::Zero(nbundle);
     for (size_t n=0; n <pairs.size(); n++){
       initial(n) = 1.0;
-      auto bundle = flash_cluster_bundles_map[pairs.at(n)];
     }
     Ress::Params params;
     params.model = Ress::lasso;
@@ -686,6 +685,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       auto bundles = it->second;
       for (size_t k=0; k < bundles.size(); k++){
         auto bundle = bundles.at(k);
+        bundle->set_strength(solution(n));
 
         if (solution(n)>0.05 || m_beamonly){
               log->debug("second match: flash {} and cluster {}, time {}, meas PE {}, pred PE {}, solution {}, ks_dis {}, chi2/ndf {}, consistent {}",
@@ -708,7 +708,49 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     remove_bundle_selection(to_be_removed, flash_bundles_map, cluster_bundles_map, flash_cluster_bundles_map);
     remove_bundle_selection(to_be_removed, pre_bundles);
     to_be_removed.clear();
+
+    // save only the best match for each cluster
+    // at this point, one cluster can be matched to at most one flash
+    // but one flash can be matched to multiple clusters 
+    std::map<int, std::pair<Opflash*,double>> matched_pairs;
+    for (size_t i=0; i!=pairs.size(); i++){
+      if (solution(i) > 0.05){
+        int cluster_idx = cluster_idx_map[pairs.at(i).second];
+        auto flash = pairs.at(i).first;
+        if (matched_pairs.find(cluster_idx) == matched_pairs.end()){
+          matched_pairs[cluster_idx] = std::make_pair(flash, solution(i));
+        }
+        else{
+          if (solution(i) > matched_pairs[cluster_idx].second){
+            matched_pairs[cluster_idx] = std::make_pair(flash, solution(i));
+          }
+        }
+      }
+    }
+    // * good matches should have ks_dis < 0.2 and chi2/ndf < 20
+    TimingTPCBundleSelection results_bundles;
     
+    for (auto it = clusters.begin(); it != clusters.end(); ++it){
+      auto cluster = *it;
+      if (cluster_idx_map.find(cluster) != cluster_idx_map.end()){
+        auto cluster_idx = cluster_idx_map[cluster];
+        if (matched_pairs.find(cluster_idx) != matched_pairs.end()){
+          auto flash = matched_pairs[cluster_idx].first;
+          // auto strength = matched_pairs[cluster_idx].second;
+          auto bundle = flash_cluster_bundles_map[std::make_pair(flash, cluster)];
+          results_bundles.push_back(bundle);
+        }
+        else{
+          // if cluster is not present in the matched pairs
+          // create a bundle with no flash
+          Opflash* flash = nullptr;
+          auto bundle = std::make_shared<TimingTPCBundle>(flash, cluster, 0, cluster_idx);
+          bundle->set_strength(0);
+          results_bundles.push_back(bundle);
+        }
+      }
+    }
+    organize_bundles(results_bundles, flash_cluster_bundles_map);
   } // end second matching round
 
   // BEE debug direct imaging output and dead blobs
@@ -758,4 +800,98 @@ void WireCell::QLMatch::QLMatching::remove_bundle_selection(TimingTPCBundleSelec
       if (temp_bundles.size() == 0) cluster_bundles_map.erase(rm_cluster);
     }
   }
+}
+
+void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& results_bundles,
+     std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map)
+{
+  // construct map for all results
+  log->debug("organizing bundles");
+  std::map<Opflash*, TimingTPCBundleSelection> eval_flash_bundles_map; 
+  for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it){
+    auto bundle = *it;
+    auto flash = bundle->get_flash();
+    if (flash == nullptr) continue;
+    if (eval_flash_bundles_map.find(flash) == eval_flash_bundles_map.end()){
+      TimingTPCBundleSelection bundles;
+      bundles.push_back(bundle);
+      eval_flash_bundles_map[flash] = bundles;
+    }
+    else{
+      eval_flash_bundles_map[flash].push_back(bundle);
+    }
+  }
+
+  TimingTPCBundleSelection second_round_bundles;
+  // TimingTPCBundleSelection third_round_bundles;
+
+  //* first round: evaluate primary matches
+  for (auto it = eval_flash_bundles_map.begin(); it != eval_flash_bundles_map.end(); ++it){
+    auto& orig_bundles = it->second;
+    auto flash = it->first;
+
+    TimingTPCBundleSelection to_be_removed;
+    TimingTPCBundle* best_bundle = nullptr;
+    double best_strength = 0;
+
+    // * find the bundle with the highest strength (best solution)
+    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt){
+      auto bundle = *jt;
+      auto strength = bundle->get_strength();
+      if (strength > best_strength){
+        best_strength = strength;
+        best_bundle = bundle.get();
+      }
+    } 
+    log->debug("best bundle strength {} for flash {}", best_strength, flash->get_flash_id());
+    // * see if performance improves by combining bundles 
+    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt){
+      auto bundle = (*jt).get();
+      if (bundle != best_bundle){
+        // * if combination of bundles passes examination
+        // ! TODO: this needs to be validated, currently only performing cut on ks_dis and chi2/ndf
+        if (best_bundle->examine_bundle(bundle)){
+          log->debug("candidate merge with ks_dis {}, chi2/ndf {}, ndf {}",
+                    int(bundle->get_ks_dis()*1000)/1000.,
+                    int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
+                    bundle->get_ndf());
+          best_bundle->add_bundle(bundle);
+          to_be_removed.push_back(*jt);
+        }
+        else{
+          second_round_bundles.push_back(*jt);
+        }
+      }
+    } // loop over orig bundles associated with this flash 
+
+    for (auto it=to_be_removed.begin(); it != to_be_removed.end(); it++){
+      results_bundles.erase(find(results_bundles.begin(), results_bundles.end(), *it));
+    }
+
+    if (best_bundle != nullptr){
+      // * only actually merge clusters if the flash is a beam-related flash
+      // if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime){
+      if (flash->get_time() > -5e3 && flash->get_time() < 5e3){
+        best_bundle->examine_merge_clusters();
+        log->debug("after merge, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
+                  int(flash->get_total_PE()*100)/100.,
+                  int(best_bundle->get_total_pred_light()*100)/100.,
+                  int(best_bundle->get_ks_dis()*1000)/1000.,
+                  int(best_bundle->get_chi2()/best_bundle->get_ndf()*100)/100.);
+      }
+    }
+  } // loop over flash
+
+  // // * second round 
+  // TimingTPCBundleSelection to_be_removed;
+  // std::set<Opflash*> tried_flashes;
+  // for (auto it=second_round_bundles.begin(); it!=second_round_bundles.end(); it++){
+  //   TimingTPCBundle *bundle = (*it).get();
+  //   automain_cluster = bundle->get_main_cluster();
+  //   bool used = false;
+  //   for (auto jt = results_bundles.rbegin(); jt != results_bundles.rend(); jt++){
+  //     TimingTPCBundle *best_bundle = (*jt);
+  //   }
+  // }
+
 }
