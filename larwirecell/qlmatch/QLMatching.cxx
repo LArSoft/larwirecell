@@ -44,9 +44,6 @@ void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg
 {
   m_anode = Factory::find_tn<IAnodePlane>(cfg["anode"].asString());
 
-  // m_VUVEfficiency = get(cfg, "VUVEfficiency", m_VUVEfficiency);
-  // m_VISEfficiency = get(cfg, "VISEfficiency", m_VISEfficiency);
-
   m_inpath = get(cfg, "inpath", m_inpath);
   m_outpath = get(cfg, "outpath", m_outpath);
   m_bee_dir = get(cfg, "bee_dir", m_bee_dir);
@@ -59,13 +56,27 @@ void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg
   for (const auto& jch : jch_mask) {
     m_ch_mask.push_back(jch.asInt());
   }
+
   m_flash_minPE = get(cfg, "flash_minPE", m_flash_minPE);
+
   if (m_beamonly) {
-    m_flash_mintime = -1e3;
-    m_flash_maxtime =  5e3;
+    m_flash_mintime = m_beam_mintime;
+    m_flash_maxtime = m_beam_maxtime;
   }
 
   m_QtoL = get(cfg, "QtoL", m_QtoL);
+
+  if (cfg["VUVEfficiency"].isArray()) {
+    m_VUVEfficiency.clear();
+    for (auto vuv_eff : cfg["VUVEfficiency"]) 
+      m_VUVEfficiency.push_back(vuv_eff.asDouble());
+  }
+
+  if (cfg["VISEfficiency"].isArray()) {
+    m_VISEfficiency.clear();
+    for (auto vis_eff : cfg["VISEfficiency"]) 
+      m_VISEfficiency.push_back(vis_eff.asDouble());
+  }
 }
 
 WireCell::Configuration WireCell::QLMatch::QLMatching::default_configuration() const
@@ -84,6 +95,8 @@ WireCell::Configuration WireCell::QLMatch::QLMatching::default_configuration() c
   cfg["flash_minPE"] = m_flash_minPE;
   cfg["flash_mintime"] = m_flash_mintime;
   cfg["flash_maxtime"] = m_flash_maxtime;
+  cfg["beam_mintime"] = m_beam_mintime;
+  cfg["beam_maxtime"] = m_beam_maxtime;
   cfg["QtoL"] = m_QtoL;
 
   return cfg;
@@ -124,11 +137,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     }
   }
 
-  std::vector<double> m_VUVEfficiency{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.035, 0.03, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021};
-  std::vector<double> m_VISEfficiency{0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0375, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.014, 0.014, 0.014, 0.014, 0.014, 0.014, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
   // ! end things to move to config block 
-
   std::string filename = "semimodel_sbnd.fcl";
   std::string pathvar("FHICL_FILE_PATH");
   const std::string vuv_key = "VUVHits"; 
@@ -301,7 +310,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       }
 
       bundle->set_pred_flash(pred_flash);
-      if (bundle->get_total_pred_light() <10) continue;
+      if (bundle->get_total_pred_light() < 10) continue;
       bundle->examine_bundle();
 
 
@@ -751,20 +760,36 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       }
     }
     organize_bundles(results_bundles, flash_cluster_bundles_map);
-  } // end second matching round
 
-  // BEE debug direct imaging output and dead blobs
-  log->debug("done with matching");
-  if (!m_bee_dir.empty()) {
-    std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
-    Persist::assuredir(sub_dir);
-    QLMatch::dump_bee_3d(
-      *root_live.get(),
-      String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-    QLMatch::dump_bee_bundle(
-      flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
-  }
-  log->debug(em("dump bee"));
+    // * given results_bundles, create new FlashBundlesMap
+    FlashBundlesMap results_flash_bundles_map;
+    for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it){
+      auto bundle = *it;
+      auto flash = bundle->get_flash();
+      if (results_flash_bundles_map.find(flash) == results_flash_bundles_map.end()){
+        std::vector<TimingTPCBundle::pointer> bundles;
+        bundles.push_back(bundle);
+        results_flash_bundles_map[flash] = bundles;
+      }
+      else{
+        results_flash_bundles_map[flash].push_back(bundle);
+      }
+    }
+
+      // BEE debug direct imaging output and dead blobs
+    log->debug("done with matching");
+    if (!m_bee_dir.empty()) {
+      std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
+      Persist::assuredir(sub_dir);
+      QLMatch::dump_bee_3d(
+        *root_live.get(),
+        String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+      QLMatch::dump_bee_bundle(
+        results_flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+    }
+    log->debug(em("dump bee"));
+
+  } // end second matching round
 
   // TODO: actual impl.
   out = invec[0];
@@ -851,15 +876,13 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
         // * if combination of bundles passes examination
         // ! TODO: this needs to be validated, currently only performing cut on ks_dis and chi2/ndf
         if (best_bundle->examine_bundle(bundle)){
-          log->debug("candidate merge with ks_dis {}, chi2/ndf {}, ndf {}",
-                    int(bundle->get_ks_dis()*1000)/1000.,
-                    int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
-                    bundle->get_ndf());
           best_bundle->add_bundle(bundle);
           to_be_removed.push_back(*jt);
         }
         else{
-          second_round_bundles.push_back(*jt);
+          // second_round_bundles.push_back(*jt);
+          // ! TODO: not doing a second round right now
+          to_be_removed.push_back(*jt);
         }
       }
     } // loop over orig bundles associated with this flash 
@@ -867,11 +890,12 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
     for (auto it=to_be_removed.begin(); it != to_be_removed.end(); it++){
       results_bundles.erase(find(results_bundles.begin(), results_bundles.end(), *it));
     }
+    to_be_removed.clear();
 
     if (best_bundle != nullptr){
       // * only actually merge clusters if the flash is a beam-related flash
       // if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime){
-      if (flash->get_time() > -5e3 && flash->get_time() < 5e3){
+      if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime){
         best_bundle->examine_merge_clusters();
         log->debug("after merge, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
                   int(flash->get_total_PE()*100)/100.,
@@ -881,6 +905,34 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
       }
     }
   } // loop over flash
+
+  TimingTPCBundleSelection to_be_removed;
+
+  for (auto it = results_bundles.begin(); it != results_bundles.end(); it++){
+    auto bundle = *it;
+    auto flash = bundle->get_flash();
+    if (flash->get_time() < m_beam_mintime || flash->get_time() > m_beam_maxtime){
+      if (bundle->get_ks_dis() > 0.2 || bundle->get_chi2()/bundle->get_ndf() > 20){
+        to_be_removed.push_back(bundle);
+        continue;
+      }
+      else if (abs(flash->get_total_PE() - bundle->get_total_pred_light()) > 0.5*flash->get_total_PE()){
+        to_be_removed.push_back(bundle);
+        continue;
+      }
+    }
+    log->debug("final bundle: flash {}, cluster *, strength {}, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
+              flash->get_flash_id(),
+              // global_cluster_idx_map[bundle->get_main_cluster()],
+              int(bundle->get_strength()*100)/100.,
+              int(flash->get_total_PE()*100)/100.,
+              int(bundle->get_total_pred_light()*100)/100.,
+              int(bundle->get_ks_dis()*1000)/1000.,
+              int(bundle->get_chi2()/bundle->get_ndf()*100)/100.);
+  }
+  for (auto it=to_be_removed.begin(); it != to_be_removed.end(); it++){
+    results_bundles.erase(find(results_bundles.begin(), results_bundles.end(), *it));
+  }
 
   // // * second round 
   // TimingTPCBundleSelection to_be_removed;
