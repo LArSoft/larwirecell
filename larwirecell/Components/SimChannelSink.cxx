@@ -28,6 +28,7 @@ WireCell::Configuration SimChannelSink::default_configuration() const
   cfg["anode"] = "AnodePlane"; // either `anodes_tn` or `anode`
   cfg["rng"] = "Random";
   cfg["artlabel"] = "simpleSC";
+  cfg["response_plane"] = 10.0 * units::cm;
   cfg["start_time"] = -1.6 * units::ms;
   cfg["readout_time"] = 4.8 * units::ms;
   cfg["tick"] = 0.5 * units::us;
@@ -83,6 +84,7 @@ void SimChannelSink::configure(const WireCell::Configuration& cfg)
 
   m_artlabel = cfg["artlabel"].asString();
   m_artlabel = get(cfg, "artlabel", m_artlabel);
+  m_response_plane = get(cfg, "response_plane", 10.0 * units::cm);
   m_start_time = get(cfg, "start_time", -1.6 * units::ms);
   m_readout_time = get(cfg, "readout_time", 4.8 * units::ms);
   m_tick = get(cfg, "tick", 0.5 * units::us);
@@ -118,8 +120,8 @@ void SimChannelSink::save_as_simchannel(const WireCell::IDepo::pointer& depo)
    *  to the reponse plane, so the start time is earlier.
    *  c.f. jsonnet config in wirecell toolkit: params.sim.ductor
    */
-  double response_plane = 10.0 * units::cm;
-  double response_time_offset = response_plane / m_drift_speed;
+  // double response_plane = 10.0 * units::cm;
+  double response_time_offset = m_response_plane / m_drift_speed;
   int response_nticks = (int)(response_time_offset / m_tick);
   Binning tbins(m_readout_time / m_tick + response_nticks,
                 m_start_time - response_time_offset,
