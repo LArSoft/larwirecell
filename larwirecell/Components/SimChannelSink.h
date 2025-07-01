@@ -51,6 +51,7 @@ namespace wcls {
     void save_as_simchannel(const WireCell::IDepo::pointer& depo);
 
     std::string m_artlabel;
+    double m_response_plane;
     double m_readout_time;
     double m_tick;
     double m_start_time;
