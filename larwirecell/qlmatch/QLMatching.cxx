@@ -17,8 +17,10 @@
 
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "art/Utilities/make_tool.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_vectors.h"
 #include "larsim/PhotonPropagation/SemiAnalyticalModel.h"
+#include "larsim/PhotonPropagation/OpticalPathTools/OpticalPath.h"
 
 WIRECELL_FACTORY(QLMatching,
                  WireCell::QLMatch::QLMatching,
@@ -197,7 +199,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   fhicl::ParameterSet pset = fhicl::ParameterSet::make(filename, maker);
   auto const vuv_pset = pset.get<fhicl::ParameterSet>(vuv_key);
   auto const vis_pset = pset.get<fhicl::ParameterSet>(vis_key);
-  auto semi_model = std::make_unique<phot::SemiAnalyticalModel>(vuv_pset, vis_pset, true, false);
+  auto opticalPath = std::shared_ptr<phot::OpticalPath>(std::move(art::make_tool<phot::OpticalPath>(pset.get<fhicl::ParameterSet>("OpticalPathTool"))));
+  auto semi_model = std::make_unique<phot::SemiAnalyticalModel>(vuv_pset, vis_pset, opticalPath, true, false, false);
 
   const auto& charge_ts = invec[0];
   const int charge_ident = charge_ts->ident();
