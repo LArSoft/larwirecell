@@ -8,6 +8,7 @@ cet_make_library(LIBRARY_NAME WireCellQLMatch
     LIBRARIES
     PUBLIC 
         larsim::PhotonPropagation
+        art_plugin_support::toolMaker
         WireCell::Util
         WireCell::Aux
         WireCell::Clus
