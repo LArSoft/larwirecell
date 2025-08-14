@@ -200,7 +200,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   auto const vuv_pset = pset.get<fhicl::ParameterSet>(vuv_key);
   auto const vis_pset = pset.get<fhicl::ParameterSet>(vis_key);
   auto opticalPath = std::shared_ptr<phot::OpticalPath>(
-    std::move(art::make_tool<phot::OpticalPath>(pset.get<fhicl::ParameterSet>("OpticalPathTool"))));
+    art::make_tool<phot::OpticalPath>(pset.get<fhicl::ParameterSet>("OpticalPathTool")));
   auto semi_model = std::make_unique<phot::SemiAnalyticalModel>(
     vuv_pset, vis_pset, opticalPath, true, false, false);
 
