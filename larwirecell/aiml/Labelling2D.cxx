@@ -58,8 +58,8 @@ Configuration AIML::Labelling2D::default_configuration() const
   cfg["copy_input_traces"] = m_copy_input_traces;
   cfg["simchannel"]["label"] = m_simchannel_label;
   cfg["frame_tags"] = Json::arrayValue;
-  for (std::size_t ind = 0; ind < m_frame_tags.size(); ++ind) {
-    cfg["frame_tags"][ind] = m_frame_tags[ind];
+  for (auto const& tag : m_frame_tags) {
+    cfg["frame_tags"].append(tag);
   }
   return cfg;
 }
@@ -143,18 +143,12 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
     return true;
   }
 
-  ITrace::shared_vector traces_out;
+  auto traces_buffer = std::make_shared<ITrace::vector>();
   if (m_copy_input_traces) {
     auto in_traces = in->traces();
     if (in_traces) {
-      traces_out = std::make_shared<ITrace::vector>(*in_traces);
+      traces_buffer->insert(traces_buffer->end(), in_traces->begin(), in_traces->end());
     }
-    else {
-      traces_out = std::make_shared<ITrace::vector>();
-    }
-  }
-  else {
-    traces_out = std::make_shared<ITrace::vector>();
   }
 
   IFrame::trace_list_t label_indices;
@@ -188,9 +182,12 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
       }
     }
 
-    label_indices.push_back(traces_out->size());
-    traces_out->push_back(ITrace::pointer(label_trace));
+    label_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(label_trace));
   }
+
+  ITrace::shared_vector traces_out = traces_buffer;
 
   auto sframe =
     new SimpleFrame(in->ident(), in->time(), traces_out, in->tick(), in->masks());
@@ -229,13 +226,16 @@ int AIML::Labelling2D::select_track_id(const sim::SimChannel& sc, int tdc_begin,
     return m_default_label;
   }
 
-  auto best = std::max_element(matches.begin(),
-                               matches.end(),
-                               [](const sim::IDE& lhs, const sim::IDE& rhs) {
-                                 return abs_charge(lhs.numElectrons) < abs_charge(rhs.numElectrons);
-                               });
-
-  if (best == matches.end()) {
+  const sim::TrackIDE* best = nullptr;
+  double best_charge = 0.0;
+  for (auto const& match : matches) {
+    const double charge = abs_charge(match.numElectrons);
+    if (!best || charge > best_charge) {
+      best = &match;
+      best_charge = charge;
+    }
+  }
+  if (!best) {
     return m_default_label;
   }
   return best->trackID;
