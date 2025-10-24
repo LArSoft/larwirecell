@@ -46,7 +46,7 @@ AIML::Labelling2D::Labelling2D()
   , m_min_charge(0.0)
   , m_copy_input_traces(false)
 {
-  m_frame_tags.push_back(m_output_trace_tag_trackid);
+  m_frame_tags.push_back("truth");
 }
 
 AIML::Labelling2D::~Labelling2D() = default;
@@ -91,15 +91,11 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
 
   m_simchannel_label = get(cfg, "simchannel_label", m_simchannel_label);
 
-  m_frame_tags.clear();
   if (cfg.isMember("frame_tags")) {
+    m_frame_tags.clear();
     for (auto const& tag : cfg["frame_tags"]) {
       m_frame_tags.push_back(tag.asString());
     }
-  }
-
-  if (m_frame_tags.empty() && !m_output_trace_tag_trackid.empty()) {
-    m_frame_tags.push_back(m_output_trace_tag_trackid);
   }
 
   clear_cache();
@@ -184,7 +180,7 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
     if (sc) {
       const int base_tbin = trace->tbin();
       for (std::size_t isample = 0; isample < reco_charge.size(); ++isample) {
-        if (m_min_charge > 0.0 && abs_charge(reco_charge[isample]) < m_min_charge) {
+        if (!(abs_charge(reco_charge[isample]) > m_min_charge)) {
           continue;
         }
         const int tdc_begin = m_tdc_offset + base_tbin + static_cast<int>(isample);
