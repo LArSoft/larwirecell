@@ -78,22 +78,7 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
   m_min_charge = get(cfg, "min_charge", m_min_charge);
   m_copy_input_traces = get(cfg, "copy_input_traces", m_copy_input_traces);
 
-  if (cfg.isMember("simchannel")) {
-    const auto& scfg = cfg["simchannel"];
-    if (scfg.isMember("module_label")) {
-      const std::string module = scfg["module_label"].asString();
-      const std::string instance = get(scfg, "product_instance", std::string());
-      const std::string process = get(scfg, "process", std::string());
-      art::InputTag tag(module, instance, process);
-      m_simchannel_label = tag.encode();
-    }
-    else {
-      m_simchannel_label = get(scfg, "label", m_simchannel_label);
-    }
-  }
-  else {
-    m_simchannel_label = get(cfg, "simchannel_label", m_simchannel_label);
-  }
+  m_simchannel_label = get(cfg, "simchannel_label", m_simchannel_label);
 
   m_frame_tags.clear();
   if (cfg.isMember("frame_tags")) {
@@ -111,6 +96,7 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
 
 void AIML::Labelling2D::visit(art::Event& event)
 {
+  log->debug("Labelling2D::visit: event: {}", event.event());
   clear_cache();
 
   if (m_simchannel_label.empty()) {
@@ -161,6 +147,15 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
 
     const int chid = trace->channel();
     const sim::SimChannel* sc = find_simchannel(chid);
+    // if (!sc) {
+    //   log->debug("Labelling2D: no SimChannel found for channel {}", chid);
+    // } else {
+    //   const auto & idemap = sc->TDCIDEMap();
+    //   log->debug("Labelling2D: found SimChannel for channel {} with {} TDC entries",
+    //              chid,
+    //              idemap.size());
+    // }
+
     const auto& reco_charge = trace->charge();
 
     SimpleTrace* label_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
