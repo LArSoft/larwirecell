@@ -10,4 +10,6 @@ cet_make_library(LIBRARY_NAME WireCellAIML
         lardataobj::Simulation
         art::Framework_Core
         art::Framework_Principal
+    PRIVATE
+        larsim::MCCheater_ParticleInventoryService_service
 )

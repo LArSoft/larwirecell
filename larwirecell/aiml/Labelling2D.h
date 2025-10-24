@@ -38,11 +38,14 @@ namespace WireCell::AIML {
     int select_track_id(const sim::SimChannel& sc, int tdc_begin, int tdc_end) const;
     void cache_simchannels(const std::vector<sim::SimChannel>& simchs);
     void clear_cache();
+    void populate_trackid_pid_map();
+    int pid_from_track(int track_id) const;
 
     WireCell::IAnodePlane::pointer m_anode;
     std::string m_anode_tn;
     std::string m_reco_tag;
-    std::string m_output_tag;
+    std::string m_output_trace_tag_trackid;
+    std::string m_output_trace_tag_pid;
     std::vector<std::string> m_frame_tags;
     std::string m_simchannel_label;
     int m_default_label;
@@ -52,6 +55,7 @@ namespace WireCell::AIML {
 
     std::vector<sim::SimChannel> m_simchannels;
     channel_index_t m_channel_index;
+    std::unordered_map<int, int> m_trackid_to_pid;
   };
 }
 
