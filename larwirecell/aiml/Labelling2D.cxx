@@ -201,6 +201,7 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
   }
 
   out = IFrame::pointer(sframe);
+  log->debug("output frame: {}", Aux::taginfo(out));
   return true;
 }
 
