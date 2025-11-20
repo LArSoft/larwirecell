@@ -34,6 +34,7 @@ namespace WireCell::AIML {
   private:
     using channel_index_t = std::unordered_map<unsigned int, std::size_t>;
     using TrackChargeInfo = std::pair<int, double>; // {trackID, charge}
+    using PIDChargeInfo = std::pair<int, double>;   // {PID, merged_charge}
 
     const sim::SimChannel* find_simchannel(unsigned int channel) const;
     int select_track_id(const sim::SimChannel& sc, int tdc_begin, int tdc_end) const;
@@ -47,6 +48,8 @@ namespace WireCell::AIML {
                                                        int tdc_begin, int tdc_end) const;
     std::pair<int, int> select_top2_track_ids(const sim::SimChannel& sc,
                                               int tdc_begin, int tdc_end) const;
+    std::pair<int, int> select_top2_pids(const sim::SimChannel& sc,
+                                         int tdc_begin, int tdc_end) const;
 
     WireCell::IAnodePlane::pointer m_anode;
     std::string m_anode_tn;

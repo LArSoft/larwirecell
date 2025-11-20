@@ -266,10 +266,14 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
         int track_id_1st = top2_tracks.first;
         int track_id_2nd = top2_tracks.second;
 
+        auto top2_pids = select_top2_pids(*sc, tdc_begin, tdc_end);
+        int pid_1st = top2_pids.first;
+        int pid_2nd = top2_pids.second;
+
         trackid_1st_values[ibin] = static_cast<float>(track_id_1st);
         trackid_2nd_values[ibin] = static_cast<float>(track_id_2nd);
-        pid_1st_values[ibin] = static_cast<float>(pid_from_track(track_id_1st));
-        pid_2nd_values[ibin] = static_cast<float>(pid_from_track(track_id_2nd));
+        pid_1st_values[ibin] = static_cast<float>(pid_1st);
+        pid_2nd_values[ibin] = static_cast<float>(pid_2nd);
       }
     }
 
@@ -408,6 +412,50 @@ std::pair<int, int> AIML::Labelling2D::select_top2_track_ids(const sim::SimChann
   }
 
   return std::make_pair(top1_track_id, top2_track_id);
+}
+
+std::pair<int, int> AIML::Labelling2D::select_top2_pids(const sim::SimChannel& sc,
+                                                        int tdc_begin, int tdc_end) const
+{
+  auto track_charges = extract_track_charges(sc, tdc_begin, tdc_end);
+
+  // Merge charge contributions by PID
+  std::unordered_map<int, double> pid_merged_charges;
+  for (auto const& track_charge : track_charges) {
+    int track_id = track_charge.first;
+    double charge = track_charge.second;
+    int pid = pid_from_track(track_id);
+
+    // Accumulate charge for this PID
+    if (pid_merged_charges.find(pid) == pid_merged_charges.end()) {
+      pid_merged_charges[pid] = charge;
+    } else {
+      pid_merged_charges[pid] += charge;
+    }
+  }
+
+  // Convert map to vector of PIDChargeInfo and sort by charge
+  std::vector<PIDChargeInfo> pid_charges;
+  for (auto const& pid_charge : pid_merged_charges) {
+    pid_charges.emplace_back(pid_charge.first, pid_charge.second);
+  }
+
+  std::sort(pid_charges.begin(), pid_charges.end(),
+            [](const PIDChargeInfo& a, const PIDChargeInfo& b) {
+              return a.second > b.second;
+            });
+
+  int top1_pid = 0;
+  int top2_pid = 0;
+
+  if (!pid_charges.empty()) {
+    top1_pid = pid_charges[0].first;
+  }
+  if (pid_charges.size() > 1) {
+    top2_pid = pid_charges[1].first;
+  }
+
+  return std::make_pair(top1_pid, top2_pid);
 }
 
 void AIML::Labelling2D::cache_simchannels(const std::vector<sim::SimChannel>& simchs)
