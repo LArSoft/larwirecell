@@ -41,19 +41,15 @@ AIML::Labelling2D::Labelling2D()
   , m_reco_tag("reco")
   , m_output_trace_tag_trackid("trackid")
   , m_output_trace_tag_pid("pid")
-  , m_output_trace_tag_orig_trackid_1st("orig_trackid_1st")
-  , m_output_trace_tag_orig_pid_1st("orig_pid_1st")
-  , m_output_trace_tag_current_pid_1st("current_pid_1st")
-  , m_output_trace_tag_charge_1st("charge_1st")
-  , m_output_trace_tag_orig_trackid_2nd("orig_trackid_2nd")
-  , m_output_trace_tag_orig_pid_2nd("orig_pid_2nd")
-  , m_output_trace_tag_current_pid_2nd("current_pid_2nd")
-  , m_output_trace_tag_charge_2nd("charge_2nd")
+  , m_output_trace_tag_trackid_1st("trackid_1st")
+  , m_output_trace_tag_trackid_2nd("trackid_2nd")
+  , m_output_trace_tag_pid_1st("pid_1st")
+  , m_output_trace_tag_pid_2nd("pid_2nd")
   , m_default_label(0)
   , m_tdc_offset(0)
   , m_min_charge(0.0)
   , m_copy_input_traces(false)
-  , m_save_extended_labels(false)
+  , m_rebin_time_tick(1)
 {
   m_frame_tags.push_back("truth");
 }
@@ -67,19 +63,15 @@ Configuration AIML::Labelling2D::default_configuration() const
   cfg["reco_tag"] = m_reco_tag;
   cfg["output_trace_tag_trackid"] = m_output_trace_tag_trackid;
   cfg["output_trace_tag_pid"] = m_output_trace_tag_pid;
-  cfg["output_trace_tag_orig_trackid_1st"] = m_output_trace_tag_orig_trackid_1st;
-  cfg["output_trace_tag_orig_pid_1st"] = m_output_trace_tag_orig_pid_1st;
-  cfg["output_trace_tag_current_pid_1st"] = m_output_trace_tag_current_pid_1st;
-  cfg["output_trace_tag_charge_1st"] = m_output_trace_tag_charge_1st;
-  cfg["output_trace_tag_orig_trackid_2nd"] = m_output_trace_tag_orig_trackid_2nd;
-  cfg["output_trace_tag_orig_pid_2nd"] = m_output_trace_tag_orig_pid_2nd;
-  cfg["output_trace_tag_current_pid_2nd"] = m_output_trace_tag_current_pid_2nd;
-  cfg["output_trace_tag_charge_2nd"] = m_output_trace_tag_charge_2nd;
+  cfg["output_trace_tag_trackid_1st"] = m_output_trace_tag_trackid_1st;
+  cfg["output_trace_tag_trackid_2nd"] = m_output_trace_tag_trackid_2nd;
+  cfg["output_trace_tag_pid_1st"] = m_output_trace_tag_pid_1st;
+  cfg["output_trace_tag_pid_2nd"] = m_output_trace_tag_pid_2nd;
   cfg["default_label"] = m_default_label;
   cfg["tdc_offset"] = m_tdc_offset;
   cfg["min_charge"] = m_min_charge;
   cfg["copy_input_traces"] = m_copy_input_traces;
-  cfg["save_extended_labels"] = m_save_extended_labels;
+  cfg["rebin_time_tick"] = m_rebin_time_tick;
   cfg["simchannel"]["label"] = m_simchannel_label;
   cfg["frame_tags"] = Json::arrayValue;
   for (auto const& tag : m_frame_tags) {
@@ -98,14 +90,10 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
   m_reco_tag = get(cfg, "reco_tag", m_reco_tag);
   m_output_trace_tag_trackid = get(cfg, "output_trace_tag_trackid", m_output_trace_tag_trackid);
   m_output_trace_tag_pid = get(cfg, "output_trace_tag_pid", m_output_trace_tag_pid);
-  m_output_trace_tag_orig_trackid_1st = get(cfg, "output_trace_tag_orig_trackid_1st", m_output_trace_tag_orig_trackid_1st);
-  m_output_trace_tag_orig_pid_1st = get(cfg, "output_trace_tag_orig_pid_1st", m_output_trace_tag_orig_pid_1st);
-  m_output_trace_tag_current_pid_1st = get(cfg, "output_trace_tag_current_pid_1st", m_output_trace_tag_current_pid_1st);
-  m_output_trace_tag_charge_1st = get(cfg, "output_trace_tag_charge_1st", m_output_trace_tag_charge_1st);
-  m_output_trace_tag_orig_trackid_2nd = get(cfg, "output_trace_tag_orig_trackid_2nd", m_output_trace_tag_orig_trackid_2nd);
-  m_output_trace_tag_orig_pid_2nd = get(cfg, "output_trace_tag_orig_pid_2nd", m_output_trace_tag_orig_pid_2nd);
-  m_output_trace_tag_current_pid_2nd = get(cfg, "output_trace_tag_current_pid_2nd", m_output_trace_tag_current_pid_2nd);
-  m_output_trace_tag_charge_2nd = get(cfg, "output_trace_tag_charge_2nd", m_output_trace_tag_charge_2nd);
+  m_output_trace_tag_trackid_1st = get(cfg, "output_trace_tag_trackid_1st", m_output_trace_tag_trackid_1st);
+  m_output_trace_tag_trackid_2nd = get(cfg, "output_trace_tag_trackid_2nd", m_output_trace_tag_trackid_2nd);
+  m_output_trace_tag_pid_1st = get(cfg, "output_trace_tag_pid_1st", m_output_trace_tag_pid_1st);
+  m_output_trace_tag_pid_2nd = get(cfg, "output_trace_tag_pid_2nd", m_output_trace_tag_pid_2nd);
   const int configured_default = get(cfg, "default_label", m_default_label);
   if (configured_default != 0) {
     log->warn("Labelling2D overrides configured default_label {} with 0", configured_default);
@@ -114,7 +102,11 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
   m_tdc_offset = get(cfg, "tdc_offset", m_tdc_offset);
   m_min_charge = get(cfg, "min_charge", m_min_charge);
   m_copy_input_traces = get(cfg, "copy_input_traces", m_copy_input_traces);
-  m_save_extended_labels = get(cfg, "save_extended_labels", m_save_extended_labels);
+  m_rebin_time_tick = get(cfg, "rebin_time_tick", m_rebin_time_tick);
+  if (m_rebin_time_tick <= 0) {
+    log->warn("Labelling2D rebin_time_tick must be > 0, setting to 1");
+    m_rebin_time_tick = 1;
+  }
 
   m_simchannel_label = get(cfg, "simchannel_label", m_simchannel_label);
 
@@ -176,25 +168,17 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
 
   IFrame::trace_list_t trackid_indices;
   IFrame::trace_list_t pid_indices;
-  IFrame::trace_list_t orig_trackid_1st_indices;
-  IFrame::trace_list_t orig_pid_1st_indices;
-  IFrame::trace_list_t current_pid_1st_indices;
-  IFrame::trace_list_t charge_1st_indices;
-  IFrame::trace_list_t orig_trackid_2nd_indices;
-  IFrame::trace_list_t orig_pid_2nd_indices;
-  IFrame::trace_list_t current_pid_2nd_indices;
-  IFrame::trace_list_t charge_2nd_indices;
+  IFrame::trace_list_t trackid_1st_indices;
+  IFrame::trace_list_t trackid_2nd_indices;
+  IFrame::trace_list_t pid_1st_indices;
+  IFrame::trace_list_t pid_2nd_indices;
 
   trackid_indices.reserve(reco_traces.size());
   pid_indices.reserve(reco_traces.size());
-  orig_trackid_1st_indices.reserve(reco_traces.size());
-  orig_pid_1st_indices.reserve(reco_traces.size());
-  current_pid_1st_indices.reserve(reco_traces.size());
-  charge_1st_indices.reserve(reco_traces.size());
-  orig_trackid_2nd_indices.reserve(reco_traces.size());
-  orig_pid_2nd_indices.reserve(reco_traces.size());
-  current_pid_2nd_indices.reserve(reco_traces.size());
-  charge_2nd_indices.reserve(reco_traces.size());
+  trackid_1st_indices.reserve(reco_traces.size());
+  trackid_2nd_indices.reserve(reco_traces.size());
+  pid_1st_indices.reserve(reco_traces.size());
+  pid_2nd_indices.reserve(reco_traces.size());
 
   for (auto const& trace : reco_traces) {
     if (!trace) {
@@ -203,45 +187,46 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
 
     const int chid = trace->channel();
     const sim::SimChannel* sc = find_simchannel(chid);
+    // if (!sc) {
+    //   log->debug("Labelling2D: no SimChannel found for channel {}", chid);
+    // } else {
+    //   const auto & idemap = sc->TDCIDEMap();
+    //   log->debug("Labelling2D: found SimChannel for channel {} with {} TDC entries",
+    //              chid,
+    //              idemap.size());
+    // }
 
     const auto& reco_charge = trace->charge();
 
+    // Original traces at sample level
     SimpleTrace* label_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
     SimpleTrace* pid_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* orig_trackid_1st_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* orig_pid_1st_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* current_pid_1st_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* charge_1st_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* orig_trackid_2nd_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* orig_pid_2nd_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* current_pid_2nd_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-    SimpleTrace* charge_2nd_trace = new SimpleTrace(chid, trace->tbin(), reco_charge.size());
-
     auto& label_values = label_trace->charge();
     auto& pid_values = pid_trace->charge();
-    auto& orig_trackid_1st_values = orig_trackid_1st_trace->charge();
-    auto& orig_pid_1st_values = orig_pid_1st_trace->charge();
-    auto& current_pid_1st_values = current_pid_1st_trace->charge();
-    auto& charge_1st_values = charge_1st_trace->charge();
-    auto& orig_trackid_2nd_values = orig_trackid_2nd_trace->charge();
-    auto& orig_pid_2nd_values = orig_pid_2nd_trace->charge();
-    auto& current_pid_2nd_values = current_pid_2nd_trace->charge();
-    auto& charge_2nd_values = charge_2nd_trace->charge();
-
-    // Initialize all traces with default values
     std::fill(label_values.begin(), label_values.end(), static_cast<float>(m_default_label));
     std::fill(pid_values.begin(), pid_values.end(), 0.0f);
-    std::fill(orig_trackid_1st_values.begin(), orig_trackid_1st_values.end(), 0.0f);
-    std::fill(orig_pid_1st_values.begin(), orig_pid_1st_values.end(), 0.0f);
-    std::fill(current_pid_1st_values.begin(), current_pid_1st_values.end(), 0.0f);
-    std::fill(charge_1st_values.begin(), charge_1st_values.end(), 0.0f);
-    std::fill(orig_trackid_2nd_values.begin(), orig_trackid_2nd_values.end(), 0.0f);
-    std::fill(orig_pid_2nd_values.begin(), orig_pid_2nd_values.end(), 0.0f);
-    std::fill(current_pid_2nd_values.begin(), current_pid_2nd_values.end(), 0.0f);
-    std::fill(charge_2nd_values.begin(), charge_2nd_values.end(), 0.0f);
+
+    // Rebinned traces
+    std::size_t rebinned_size = (reco_charge.size() + m_rebin_time_tick - 1) / m_rebin_time_tick;
+    SimpleTrace* trackid_1st_trace = new SimpleTrace(chid, trace->tbin(), rebinned_size);
+    SimpleTrace* trackid_2nd_trace = new SimpleTrace(chid, trace->tbin(), rebinned_size);
+    SimpleTrace* pid_1st_trace = new SimpleTrace(chid, trace->tbin(), rebinned_size);
+    SimpleTrace* pid_2nd_trace = new SimpleTrace(chid, trace->tbin(), rebinned_size);
+
+    auto& trackid_1st_values = trackid_1st_trace->charge();
+    auto& trackid_2nd_values = trackid_2nd_trace->charge();
+    auto& pid_1st_values = pid_1st_trace->charge();
+    auto& pid_2nd_values = pid_2nd_trace->charge();
+
+    std::fill(trackid_1st_values.begin(), trackid_1st_values.end(), static_cast<float>(m_default_label));
+    std::fill(trackid_2nd_values.begin(), trackid_2nd_values.end(), static_cast<float>(m_default_label));
+    std::fill(pid_1st_values.begin(), pid_1st_values.end(), 0.0f);
+    std::fill(pid_2nd_values.begin(), pid_2nd_values.end(), 0.0f);
 
     if (sc) {
       const int base_tbin = trace->tbin();
+
+      // Process original samples
       for (std::size_t isample = 0; isample < reco_charge.size(); ++isample) {
         if (!(abs_charge(reco_charge[isample]) > m_min_charge)) {
           continue;
@@ -253,29 +238,41 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
         }
         label_values[isample] = static_cast<float>(track_id);
         pid_values[isample] = static_cast<float>(pid_from_track(track_id));
+      }
 
-        // Get top 2 tracks with charge information
-        auto top_tracks = get_top_tracks(*sc, tdc_begin, tdc_begin + 1, 2);
+      // Process rebinned samples
+      for (std::size_t ibin = 0; ibin < rebinned_size; ++ibin) {
+        std::size_t start_sample = ibin * m_rebin_time_tick;
+        std::size_t end_sample = std::min((ibin + 1) * m_rebin_time_tick, reco_charge.size());
 
-        // Fill 1st biggest charge traces
-        if (top_tracks.size() > 0) {
-          orig_trackid_1st_values[isample] = static_cast<float>(top_tracks[0].origTrackID);
-          orig_pid_1st_values[isample] = static_cast<float>(top_tracks[0].origPID);
-          current_pid_1st_values[isample] = static_cast<float>(top_tracks[0].currentPID);
-          charge_1st_values[isample] = static_cast<float>(top_tracks[0].charge);
+        // Check if this rebinned bin has any significant charge
+        bool has_charge = false;
+        for (std::size_t isample = start_sample; isample < end_sample; ++isample) {
+          if (abs_charge(reco_charge[isample]) > m_min_charge) {
+            has_charge = true;
+            break;
+          }
         }
 
-        // Fill 2nd biggest charge traces
-        if (top_tracks.size() > 1) {
-          orig_trackid_2nd_values[isample] = static_cast<float>(top_tracks[1].origTrackID);
-          orig_pid_2nd_values[isample] = static_cast<float>(top_tracks[1].origPID);
-          current_pid_2nd_values[isample] = static_cast<float>(top_tracks[1].currentPID);
-          charge_2nd_values[isample] = static_cast<float>(top_tracks[1].charge);
+        if (!has_charge) {
+          continue;
         }
+
+        // For the rebinned bin, use the span of TDCs
+        const int tdc_begin = m_tdc_offset + base_tbin + static_cast<int>(start_sample);
+        const int tdc_end = m_tdc_offset + base_tbin + static_cast<int>(end_sample);
+
+        auto top2_tracks = select_top2_track_ids(*sc, tdc_begin, tdc_end);
+        int track_id_1st = top2_tracks.first;
+        int track_id_2nd = top2_tracks.second;
+
+        trackid_1st_values[ibin] = static_cast<float>(track_id_1st);
+        trackid_2nd_values[ibin] = static_cast<float>(track_id_2nd);
+        pid_1st_values[ibin] = static_cast<float>(pid_from_track(track_id_1st));
+        pid_2nd_values[ibin] = static_cast<float>(pid_from_track(track_id_2nd));
       }
     }
 
-    // Add original traces
     trackid_indices.push_back(
       static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
     traces_buffer->push_back(ITrace::pointer(label_trace));
@@ -283,44 +280,18 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
       static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
     traces_buffer->push_back(ITrace::pointer(pid_trace));
 
-    // Add extended labels if enabled
-    if (m_save_extended_labels) {
-      orig_trackid_1st_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(orig_trackid_1st_trace));
-      orig_pid_1st_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(orig_pid_1st_trace));
-      current_pid_1st_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(current_pid_1st_trace));
-      charge_1st_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(charge_1st_trace));
-
-      orig_trackid_2nd_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(orig_trackid_2nd_trace));
-      orig_pid_2nd_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(orig_pid_2nd_trace));
-      current_pid_2nd_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(current_pid_2nd_trace));
-      charge_2nd_indices.push_back(
-        static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
-      traces_buffer->push_back(ITrace::pointer(charge_2nd_trace));
-    } else {
-      // Clean up if not saving extended labels
-      delete orig_trackid_1st_trace;
-      delete orig_pid_1st_trace;
-      delete current_pid_1st_trace;
-      delete charge_1st_trace;
-      delete orig_trackid_2nd_trace;
-      delete orig_pid_2nd_trace;
-      delete current_pid_2nd_trace;
-      delete charge_2nd_trace;
-    }
+    trackid_1st_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(trackid_1st_trace));
+    trackid_2nd_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(trackid_2nd_trace));
+    pid_1st_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(pid_1st_trace));
+    pid_2nd_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(pid_2nd_trace));
   }
 
   ITrace::shared_vector traces_out = traces_buffer;
@@ -338,32 +309,17 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
   if (!m_output_trace_tag_pid.empty()) {
     sframe->tag_traces(m_output_trace_tag_pid, pid_indices);
   }
-
-  if (m_save_extended_labels) {
-    if (!m_output_trace_tag_orig_trackid_1st.empty()) {
-      sframe->tag_traces(m_output_trace_tag_orig_trackid_1st, orig_trackid_1st_indices);
-    }
-    if (!m_output_trace_tag_orig_pid_1st.empty()) {
-      sframe->tag_traces(m_output_trace_tag_orig_pid_1st, orig_pid_1st_indices);
-    }
-    if (!m_output_trace_tag_current_pid_1st.empty()) {
-      sframe->tag_traces(m_output_trace_tag_current_pid_1st, current_pid_1st_indices);
-    }
-    if (!m_output_trace_tag_charge_1st.empty()) {
-      sframe->tag_traces(m_output_trace_tag_charge_1st, charge_1st_indices);
-    }
-    if (!m_output_trace_tag_orig_trackid_2nd.empty()) {
-      sframe->tag_traces(m_output_trace_tag_orig_trackid_2nd, orig_trackid_2nd_indices);
-    }
-    if (!m_output_trace_tag_orig_pid_2nd.empty()) {
-      sframe->tag_traces(m_output_trace_tag_orig_pid_2nd, orig_pid_2nd_indices);
-    }
-    if (!m_output_trace_tag_current_pid_2nd.empty()) {
-      sframe->tag_traces(m_output_trace_tag_current_pid_2nd, current_pid_2nd_indices);
-    }
-    if (!m_output_trace_tag_charge_2nd.empty()) {
-      sframe->tag_traces(m_output_trace_tag_charge_2nd, charge_2nd_indices);
-    }
+  if (!m_output_trace_tag_trackid_1st.empty()) {
+    sframe->tag_traces(m_output_trace_tag_trackid_1st, trackid_1st_indices);
+  }
+  if (!m_output_trace_tag_trackid_2nd.empty()) {
+    sframe->tag_traces(m_output_trace_tag_trackid_2nd, trackid_2nd_indices);
+  }
+  if (!m_output_trace_tag_pid_1st.empty()) {
+    sframe->tag_traces(m_output_trace_tag_pid_1st, pid_1st_indices);
+  }
+  if (!m_output_trace_tag_pid_2nd.empty()) {
+    sframe->tag_traces(m_output_trace_tag_pid_2nd, pid_2nd_indices);
   }
 
   out = IFrame::pointer(sframe);
@@ -408,10 +364,9 @@ int AIML::Labelling2D::select_track_id(const sim::SimChannel& sc, int tdc_begin,
   return best->trackID;
 }
 
-std::vector<TrackChargeInfo> AIML::Labelling2D::get_top_tracks(const sim::SimChannel& sc, int tdc_begin, int tdc_end, int max_tracks) const
+std::vector<AIML::Labelling2D::TrackChargeInfo> AIML::Labelling2D::extract_track_charges(
+  const sim::SimChannel& sc, int tdc_begin, int tdc_end) const
 {
-  std::vector<TrackChargeInfo> result;
-
   if (tdc_end <= tdc_begin) {
     tdc_end = tdc_begin + 1;
   }
@@ -420,35 +375,39 @@ std::vector<TrackChargeInfo> AIML::Labelling2D::get_top_tracks(const sim::SimCha
   const double stop = static_cast<double>(tdc_end);
   auto matches = sc.TrackIDEs(start, stop);
 
-  if (matches.empty()) {
-    return result;
-  }
-
-  // Collect all tracks with their charges and PIDs
-  // origTrackID is a sentinel value (e.g., -999) for primary particles; use trackID in that case
+  std::vector<TrackChargeInfo> track_charges;
   for (auto const& match : matches) {
     const double charge = abs_charge(match.numElectrons);
-    const int currentTrackID = match.trackID;
-    // Use origTrackID if valid (>= 0), otherwise use trackID (it's already primary)
-    const int primaryTrackID = (match.origTrackID >= 0) ? match.origTrackID : currentTrackID;
-    const int primaryPID = pid_from_track(primaryTrackID);
-    const int currentPID = pid_from_track(currentTrackID);
-    if(primaryTrackID!=currentTrackID)
-    std::cout<<"origTrackID = "<<primaryTrackID<<" current trackID = "<<currentTrackID<<std::endl;
-
-
-    result.push_back({primaryTrackID, primaryPID, currentPID, charge});
+    if (charge > 0.0) {
+      track_charges.emplace_back(match.trackID, charge);
+    }
   }
 
   // Sort by charge in descending order
-  std::sort(result.begin(), result.end());
+  std::sort(track_charges.begin(), track_charges.end(),
+            [](const TrackChargeInfo& a, const TrackChargeInfo& b) {
+              return a.second > b.second;
+            });
 
-  // Keep only top N tracks
-  if (result.size() > static_cast<std::size_t>(max_tracks)) {
-    result.resize(max_tracks);
+  return track_charges;
+}
+
+std::pair<int, int> AIML::Labelling2D::select_top2_track_ids(const sim::SimChannel& sc,
+                                                              int tdc_begin, int tdc_end) const
+{
+  auto track_charges = extract_track_charges(sc, tdc_begin, tdc_end);
+
+  int top1_track_id = m_default_label;
+  int top2_track_id = m_default_label;
+
+  if (!track_charges.empty()) {
+    top1_track_id = track_charges[0].first;
+  }
+  if (track_charges.size() > 1) {
+    top2_track_id = track_charges[1].first;
   }
 
-  return result;
+  return std::make_pair(top1_track_id, top2_track_id);
 }
 
 void AIML::Labelling2D::cache_simchannels(const std::vector<sim::SimChannel>& simchs)
