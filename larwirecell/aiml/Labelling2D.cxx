@@ -45,6 +45,7 @@ AIML::Labelling2D::Labelling2D()
   , m_output_trace_tag_trackid_2nd("trackid_2nd")
   , m_output_trace_tag_pid_1st("pid_1st")
   , m_output_trace_tag_pid_2nd("pid_2nd")
+  , m_output_trace_tag_rebinned_reco("rebinned_reco")
   , m_default_label(0)
   , m_tdc_offset(0)
   , m_min_charge(0.0)
@@ -67,6 +68,7 @@ Configuration AIML::Labelling2D::default_configuration() const
   cfg["output_trace_tag_trackid_2nd"] = m_output_trace_tag_trackid_2nd;
   cfg["output_trace_tag_pid_1st"] = m_output_trace_tag_pid_1st;
   cfg["output_trace_tag_pid_2nd"] = m_output_trace_tag_pid_2nd;
+  cfg["output_trace_tag_rebinned_reco"] = m_output_trace_tag_rebinned_reco;
   cfg["default_label"] = m_default_label;
   cfg["tdc_offset"] = m_tdc_offset;
   cfg["min_charge"] = m_min_charge;
@@ -94,6 +96,7 @@ void AIML::Labelling2D::configure(const Configuration& cfg)
   m_output_trace_tag_trackid_2nd = get(cfg, "output_trace_tag_trackid_2nd", m_output_trace_tag_trackid_2nd);
   m_output_trace_tag_pid_1st = get(cfg, "output_trace_tag_pid_1st", m_output_trace_tag_pid_1st);
   m_output_trace_tag_pid_2nd = get(cfg, "output_trace_tag_pid_2nd", m_output_trace_tag_pid_2nd);
+  m_output_trace_tag_rebinned_reco = get(cfg, "output_trace_tag_rebinned_reco", m_output_trace_tag_rebinned_reco);
   const int configured_default = get(cfg, "default_label", m_default_label);
   if (configured_default != 0) {
     log->warn("Labelling2D overrides configured default_label {} with 0", configured_default);
@@ -159,6 +162,8 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
   }
 
   auto traces_buffer = std::make_shared<ITrace::vector>();
+  IFrame::trace_list_t reco_rebinned_indices;
+
   if (m_copy_input_traces) {
     auto in_traces = in->traces();
     if (in_traces) {
@@ -298,6 +303,35 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
     traces_buffer->push_back(ITrace::pointer(pid_2nd_trace));
   }
 
+  // Create rebinned reco traces
+  for (auto const& trace : reco_traces) {
+    if (!trace) {
+      continue;
+    }
+
+    const auto& original_charge = trace->charge();
+    std::size_t rebinned_size = (original_charge.size() + m_rebin_time_tick - 1) / m_rebin_time_tick;
+
+    SimpleTrace* rebinned_trace = new SimpleTrace(trace->channel(), trace->tbin(), rebinned_size);
+    auto& rebinned_charge = rebinned_trace->charge();
+
+    // Sum charges in each rebinned bin
+    for (std::size_t ibin = 0; ibin < rebinned_size; ++ibin) {
+      std::size_t start_sample = ibin * m_rebin_time_tick;
+      std::size_t end_sample = std::min((ibin + 1) * m_rebin_time_tick, original_charge.size());
+
+      double sum = 0.0;
+      for (std::size_t isample = start_sample; isample < end_sample; ++isample) {
+        sum += original_charge[isample];
+      }
+      rebinned_charge[ibin] = static_cast<float>(sum);
+    }
+
+    reco_rebinned_indices.push_back(
+      static_cast<IFrame::trace_list_t::value_type>(traces_buffer->size()));
+    traces_buffer->push_back(ITrace::pointer(rebinned_trace));
+  }
+
   ITrace::shared_vector traces_out = traces_buffer;
 
   auto sframe =
@@ -324,6 +358,11 @@ bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)
   }
   if (!m_output_trace_tag_pid_2nd.empty()) {
     sframe->tag_traces(m_output_trace_tag_pid_2nd, pid_2nd_indices);
+  }
+
+  // Tag the rebinned reco traces
+  if (!m_output_trace_tag_rebinned_reco.empty()) {
+    sframe->tag_traces(m_output_trace_tag_rebinned_reco, reco_rebinned_indices);
   }
 
   out = IFrame::pointer(sframe);

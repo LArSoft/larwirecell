@@ -60,6 +60,7 @@ namespace WireCell::AIML {
     std::string m_output_trace_tag_trackid_2nd;
     std::string m_output_trace_tag_pid_1st;
     std::string m_output_trace_tag_pid_2nd;
+    std::string m_output_trace_tag_rebinned_reco;
     std::vector<std::string> m_frame_tags;
     std::string m_simchannel_label;
     int m_default_label;
