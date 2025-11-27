@@ -9,11 +9,11 @@
 #include <vector>
 
 namespace WireCell::QLMatch {
-  typedef std::vector<WireCell::PointCloud::Facade::Cluster*> ClusterSelection;
+  typedef std::vector<WireCell::Clus::Facade::Cluster*> ClusterSelection;
   class TimingTPCBundle {
   public:
     typedef std::shared_ptr<TimingTPCBundle> pointer;
-    using Cluster = WireCell::PointCloud::Facade::Cluster;
+    using Cluster = WireCell::Clus::Facade::Cluster;
 
     TimingTPCBundle(Opflash* flash,
                     Cluster* main_cluster,
@@ -81,7 +81,7 @@ namespace WireCell::QLMatch {
     double get_strength() { return strength; };
     void set_strength(double value) { strength = value; };
 
-    void examine_merge_clusters(double dis_cut = 3.6 * units::cm);
+    // void examine_merge_clusters(double dis_cut = 3.6 * units::cm);
 
     int get_flash_index_id() { return flash_index_id; };
     int get_cluster_index_id() { return cluster_index_id; };
@@ -116,7 +116,7 @@ namespace WireCell::QLMatch {
   typedef std::vector<TimingTPCBundle::pointer> TimingTPCBundleSelection;
   typedef std::set<TimingTPCBundle::pointer> TimingTPCBundleSet;
   typedef std::map<Opflash*, TimingTPCBundleSelection> FlashBundlesMap;
-  typedef std::map<WireCell::PointCloud::Facade::Cluster*, TimingTPCBundleSelection>
+  typedef std::map<WireCell::Clus::Facade::Cluster*, TimingTPCBundleSelection>
     ClusterBundlesMap;
 
 } // namespace WCP

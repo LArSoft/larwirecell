@@ -8,14 +8,14 @@
 #include <fstream>
 
 using namespace WireCell;
-using namespace WireCell::PointCloud::Facade;
+using namespace WireCell::Clus::Facade;
 using namespace WireCell::PointCloud::Tree;
 
 void WireCell::QLMatch::dump_bee_3d(const Points::node_t& root, const std::string& fn)
 {
   using spdlog::debug;
-  using WireCell::PointCloud::Facade::float_t;
-  using WireCell::PointCloud::Facade::int_t;
+  using WireCell::Clus::Facade::float_t;
+  using WireCell::Clus::Facade::int_t;
 
   Json::Value bee;
   bee["runNo"] = 0;

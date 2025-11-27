@@ -27,7 +27,7 @@ WIRECELL_FACTORY(QLMatching,
                  WireCell::IConfigurable)
 
 using namespace WireCell;
-using namespace WireCell::PointCloud::Facade;
+using namespace WireCell::Clus::Facade;
 
 WireCell::QLMatch::QLMatching::QLMatching() : Aux::Logger("QLMatching", "matching") {}
 
@@ -92,7 +92,7 @@ WireCell::Configuration WireCell::QLMatch::QLMatching::default_configuration() c
 bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output_pointer& out)
 {
   out = nullptr;
-  using WireCell::PointCloud::Facade::float_t;
+  using WireCell::Clus::Facade::float_t;
   // check input size
   if (invec.size() != m_multiplicity) {
     raise<ValueError>("unexpected multiplicity got %d want %d", invec.size(), m_multiplicity);
@@ -298,7 +298,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       size_t nopdets = flash->get_num_channels();
       std::vector<double> pred_flash(nopdets, 0.0);
 
-      size_t npt = cluster->nbpoints();
+      size_t npt = cluster->npoints();
       int npt_outside_drift = 0;
       int npt_outside_bounds = 0;
 
@@ -308,7 +308,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       std::vector<Blob*> blobs = cluster->children();
       for (auto blob : blobs) {
         auto q = blob->charge() / blob->npoints();
-        std::vector<geo_point_t> points = blob->points();
+        std::vector<geo_point_t> points = blob->points("3d", {"x", "y", "z"});
 
         for (int i = 0; i != blob->npoints(); i++) {
           auto x = points.at(i).x() + flash_x_offset;

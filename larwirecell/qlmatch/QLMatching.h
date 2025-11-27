@@ -9,7 +9,7 @@
 #include "TimingTPCBundle.h"
 
 using namespace WireCell;
-using namespace WireCell::PointCloud::Facade;
+using namespace WireCell::Clus::Facade;
 
 namespace WireCell::QLMatch {
   class QLMatching : public Aux::Logger, public ITensorSetFanin, public IConfigurable {
