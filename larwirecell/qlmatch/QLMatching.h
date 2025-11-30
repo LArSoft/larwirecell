@@ -3,6 +3,7 @@
 
 #include "WireCellAux/Logger.h"
 #include "WireCellIface/IAnodePlane.h"
+#include "WireCellIface/IDetectorVolumes.h"
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/ITensorSetFanin.h"
 
@@ -62,6 +63,8 @@ namespace WireCell::QLMatch {
     double m_QtoL{0.5};
 
     IAnodePlane::pointer m_anode{nullptr};
+
+    IDetectorVolumes::pointer m_dv;
 
     // refer to MultiAlgBlobClustering for the following
     std::string m_inpath{"pointtrees/%d"};

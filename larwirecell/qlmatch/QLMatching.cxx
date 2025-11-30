@@ -43,6 +43,7 @@ std::vector<std::string> WireCell::QLMatch::QLMatching::input_types()
 void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg)
 {
   m_anode = Factory::find_tn<IAnodePlane>(cfg["anode"].asString());
+  m_dv = Factory::find_tn<IDetectorVolumes>(cfg["detector_volumes"].asString());
 
   // m_VUVEfficiency = get(cfg, "VUVEfficiency", m_VUVEfficiency);
   // m_VISEfficiency = get(cfg, "VISEfficiency", m_VISEfficiency);
@@ -238,6 +239,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
   // check TimingTPCBundle object
   auto grouping = root_live->value.facade<Grouping>();
+  grouping->set_anodes({m_anode});
+  grouping->set_detector_volumes(m_dv);
   std::vector<Cluster*> clusters = grouping->children();
   std::sort(clusters.begin(), clusters.end(), [](const Cluster* cluster1, const Cluster* cluster2) {
     return cluster1->get_length() > cluster2->get_length();
