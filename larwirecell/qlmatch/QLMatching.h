@@ -70,6 +70,7 @@ namespace WireCell::QLMatch {
     std::string m_inpath{"pointtrees/%d"};
     std::string m_outpath{"pointtrees/%d"};
     std::string m_bee_dir{"data"};
+    float m_cluster_t0{-1e12}; // FIXME: what to use?
 
     void remove_bundle_selection(TimingTPCBundleSelection to_be_removed,
                                  TimingTPCBundleSet& bundle_set);

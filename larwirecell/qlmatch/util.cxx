@@ -218,7 +218,7 @@ void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle,
       for (const auto& pe : bundle->get_pred_flash()) {
         op_pes_pred.append(pe);
       }
-      data["op_t"].append(flash->get_time() * 1e-3);
+      data["op_t"].append(flash->get_time() * 1e-3); // ns to us
       data["op_pes"].append(op_pes);
       data["op_peTotal"].append(op_peTotal);
       data["cluster_id"].append(op_cluster_id);

@@ -51,6 +51,7 @@ void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg
   m_inpath = get(cfg, "inpath", m_inpath);
   m_outpath = get(cfg, "outpath", m_outpath);
   m_bee_dir = get(cfg, "bee_dir", m_bee_dir);
+  m_cluster_t0 = get(cfg, "cluster_t0", m_cluster_t0);
 
   m_pmts = get(cfg, "pmts", m_pmts);
   m_data = get(cfg, "data", m_data);
@@ -110,7 +111,10 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     log->debug("EOS at call {}", m_count++);
     return true;
   }
-  if (neos) { raise<ValueError>("missing %d input tensors ", neos); }
+  if (neos) {
+    log->debug("port0 {} port1 {}", (invec[0] ? "valid" : "EOS"), (invec[1] ? "valid" : "EOS"));
+    raise<ValueError>("missing %d input tensors ", neos);
+  }
 
   ExecMon em("starting QLMatching");
 
@@ -245,6 +249,11 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   std::sort(clusters.begin(), clusters.end(), [](const Cluster* cluster1, const Cluster* cluster2) {
     return cluster1->get_length() > cluster2->get_length();
   });
+
+  // add default cluster_t0 to all clusters 
+  std::for_each(clusters.begin(), clusters.end(),
+  [this](Cluster* cluster) { cluster->set_cluster_t0(-1e12); });
+
   // create global maps
   std::map<Opflash*, int> global_flash_idx_map;
   std::map<Cluster*, int> global_cluster_idx_map;
@@ -634,7 +643,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     for (auto it = flash_bundles_map.begin(); it != flash_bundles_map.end(); ++it) {
       auto flash = it->first;
       if (solution(nbundle + m) != 0)
-        log->debug(
+        log->trace(
           "flash-only: flash {}, solution={}", flash->get_flash_id(), solution(nbundle + m));
       m++;
     }
@@ -774,7 +783,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto bundle = bundles.at(k);
 
         if (solution(n) > 0.05 || m_beamonly) {
-          log->debug("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, "
+          log->trace("flash+bundle: flash {}, cluster {} time {} meas PE {}, pred PE {}, "
                      "solution={}, ks_dis {}, chi2/ndf {}, consistent {}",
                      flash->get_flash_id(),
                      global_cluster_idx_map[bundle->get_main_cluster()],
@@ -816,8 +825,33 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   }
   log->debug(em("dump bee"));
 
-  // TODO: actual impl.
-  out = invec[0];
+
+  for (auto [flash, bundles] : flash_bundles_map) {
+    for (auto bundle : bundles) {
+      bundle->get_main_cluster()->set_cluster_t0(flash->get_time() * units::ns);
+      log->trace("final bundle: flash time {} ns, cluster t0 {}",
+        flash->get_time(),
+        bundle->get_main_cluster()->get_cluster_t0());
+    }
+  }
+
+  {
+    ITensor::vector outtens;
+
+    auto tens_live = Aux::TensorDM::as_tensors(*root_live, inpath+"/live");
+    log->debug("Output {} tensors for live", tens_live.size());
+    outtens.insert(outtens.end(), tens_live.begin(), tens_live.end());
+
+    auto root_dead = Aux::TensorDM::as_pctree(charge_tens, inpath + "/dead");
+    auto tens_dead = Aux::TensorDM::as_tensors(*root_dead, inpath+"/dead");
+    log->debug("Output {} tensors for dead", tens_dead.size());
+    outtens.insert(outtens.end(), tens_dead.begin(), tens_dead.end());
+
+    out = Aux::TensorDM::as_tensorset(outtens, charge_ident);
+  }
+
+  // dumy output
+  // out = invec[0];
   return true;
 }
 
