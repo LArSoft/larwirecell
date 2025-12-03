@@ -871,14 +871,22 @@ void WireCell::QLMatch::QLMatching::remove_bundle_selection(
 
     flash_cluster_bundles_map.erase(std::make_pair(rm_flash, rm_cluster));
     {
-      auto& temp_bundles = flash_bundles_map[rm_flash];
-      temp_bundles.erase(find(temp_bundles.begin(), temp_bundles.end(), rm_bundle));
-      if (temp_bundles.size() == 0) flash_bundles_map.erase(rm_flash);
+      auto flash_it = flash_bundles_map.find(rm_flash);
+      if (flash_it != flash_bundles_map.end()) {
+        auto& temp_bundles = flash_it->second;
+        auto vec_it = find(temp_bundles.begin(), temp_bundles.end(), rm_bundle);
+        if (vec_it != temp_bundles.end()) { temp_bundles.erase(vec_it); }
+        if (temp_bundles.empty()) { flash_bundles_map.erase(flash_it); }
+      }
     }
     {
-      auto& temp_bundles = cluster_bundles_map[rm_cluster];
-      temp_bundles.erase(find(temp_bundles.begin(), temp_bundles.end(), rm_bundle));
-      if (temp_bundles.size() == 0) cluster_bundles_map.erase(rm_cluster);
+      auto cluster_it = cluster_bundles_map.find(rm_cluster);
+      if (cluster_it != cluster_bundles_map.end()) {
+        auto& temp_bundles = cluster_it->second;
+        auto vec_it = find(temp_bundles.begin(), temp_bundles.end(), rm_bundle);
+        if (vec_it != temp_bundles.end()) { temp_bundles.erase(vec_it); }
+        if (temp_bundles.empty()) { cluster_bundles_map.erase(cluster_it); }
+      }
     }
   }
 }
