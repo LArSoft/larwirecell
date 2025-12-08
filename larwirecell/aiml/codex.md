@@ -10,3 +10,30 @@ Implement Labelling2D:
 1. use the trackID and ParticleInventoryService to get the PID for each matched pixel. following: /exp/dune/app/users/yuhw/larreco/larreco/WireCell/CellTree_module.cc
 2. assign 0 for the non-matched pixels
 3. tag the trackID traces and PID traces separately with different configurable labels.
+
+# Task: Add a separated json output stream for the aiml/Labelling2D for event level neutrino information
+- Specificly, add neutrino type (nue, numu), interaction type (CC, NC), energy, vertex
+  - Reference code here:
+    https://github.com/LArSoft/larreco/blob/develop/larreco/WireCell/CellTree_module.cc#L967
+    https://internal.dunescience.org/doxygen/classsimb_1_1MCNeutrino.html
+    https://internal.dunescience.org/doxygen/classsimb_1_1MCParticle.html
+
+- Output structure:
+  - each event has a invividual json file with name: `<frame->ident()>.json`
+  - For each json:
+    ```json
+    {
+        nu_pdg: ...
+        nu_ccnc:
+        nu_intType:
+        nu_energy:
+        nu_vertex_x:
+        nu_vertex_y:
+        nu_vertex_z:
+    }
+    ```
+- For the file IO handling, make compressed tar balls for all the events. The tar ball name nees to be configurable from the Labelling::configuration(), default should be meta.tar.gz. Using the WireCellUtil/Configuration for the IO handling. Refer to code here, but make it simpler since we don't need a folder structure:
+  https://github.com/WireCell/wire-cell-toolkit/blob/master/util/inc/WireCellUtil/Bee.h#L45
+  https://github.com/WireCell/wire-cell-toolkit/blob/master/util/src/Bee.cxx#L310
+
+
