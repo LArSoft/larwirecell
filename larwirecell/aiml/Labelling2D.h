@@ -8,6 +8,7 @@
 #include "larwirecell/Interfaces/IArtEventVisitor.h"
 #include "lardataobj/Simulation/SimChannel.h"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>

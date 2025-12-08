@@ -112,5 +112,9 @@ if (WireCell_FOUND)
   endif()
 endif()
 
+message(STATUS "FindWireCell: WIRE-CELL = ${WIRE-CELL}")
+message(STATUS "FindWireCell: WireCell_INCLUDE_DIR = ${WireCell_INCLUDE_DIR}")
+message(STATUS "FindWireCell: WireCell_LIBRARIES = ${WireCell_LIBRARIES}")
+
 unset(_fwc_lib)
 unset(_fwc_libs)

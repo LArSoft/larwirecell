@@ -43,6 +43,8 @@ find_package(lardataobj REQUIRED EXPORT)
 find_package(larcoreobj REQUIRED EXPORT)
 find_package(larcorealg REQUIRED EXPORT)
 
+find_package(HDF5 REQUIRED COMPONENTS C)
+
 find_package(WireCell REQUIRED EXPORT)
 
 # macros for dictionary and simple_plugin

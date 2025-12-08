@@ -12,7 +12,6 @@
 #include "cetlib_except/exception.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
-
 #include <algorithm>
 #include <cmath>
 
@@ -129,21 +128,21 @@ void AIML::Labelling2D::visit(art::Event& event)
   clear_cache();
 
   if (m_simchannel_label.empty()) {
-    log->debug("SimChannel label not configured; skipping visit");
-    return;
+    log->debug("SimChannel label not configured; skipping SimChannel cache");
   }
-
-  art::Handle<std::vector<sim::SimChannel>> handle;
-  if (!event.getByLabel(art::InputTag{m_simchannel_label}, handle)) {
-    log->warn("Labelling2D failed to fetch SimChannel with label '{}'", m_simchannel_label);
-    return;
+  else {
+    art::Handle<std::vector<sim::SimChannel>> handle;
+    if (!event.getByLabel(art::InputTag{m_simchannel_label}, handle)) {
+      log->warn("Labelling2D failed to fetch SimChannel with label '{}'", m_simchannel_label);
+    }
+    else {
+      cache_simchannels(*handle);
+      populate_trackid_pid_map();
+      log->debug("Labelling2D cached {} SimChannels and {} track->pid entries",
+                 m_channel_index.size(),
+                 m_trackid_to_pid.size());
+    }
   }
-
-  cache_simchannels(*handle);
-  populate_trackid_pid_map();
-  log->debug("Labelling2D cached {} SimChannels and {} track->pid entries",
-             m_channel_index.size(),
-             m_trackid_to_pid.size());
 }
 
 bool AIML::Labelling2D::operator()(const input_pointer& in, output_pointer& out)

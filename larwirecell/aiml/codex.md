@@ -36,4 +36,9 @@ Implement Labelling2D:
   https://github.com/WireCell/wire-cell-toolkit/blob/master/util/inc/WireCellUtil/Bee.h#L45
   https://github.com/WireCell/wire-cell-toolkit/blob/master/util/src/Bee.cxx#L310
 
-
+# Task: Move the truth information dumper to Truth2h5
+- The current truth information dumper in Labelling2D (json, tar) content looks good now. But now I want to move that part of function to Truth2h5.h and Truth2h5.cxx as a separated component.
+- It should have similar inheretence like the Labelling2D (e.g., Aux::Logger, wcls::IArtEventVisitor, IFrameFilter, IConfigurable)
+- And instead of using json + tar. I want to use hdf5. Each event will have a dataset labeled by frame->ident().
+  - refer to code here: https://github.com/WireCell/wire-cell-toolkit/blob/master/hio/src/HDF5FrameTap.cxx
+- let me know if anything unclear

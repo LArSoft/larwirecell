@@ -245,6 +245,7 @@ defaultqual	e26
 #
 ####################################
 product		version		qual	flags		<table_format=2>
+hdf5        v1_12_2a
 larevt		v10_00_05
 wirecell	v0_29_5
 cetmodules	v3_24_01	-	only_for_build
@@ -302,11 +303,11 @@ end_product_list
 #   case it is optional.
 #
 ####################################
-qualifier	larevt		wirecell	notes
-c14:debug	c14:debug	c14:debug
-c14:prof	c14:prof	c14:prof
-e26:debug	e26:debug	e26:debug
-e26:prof	e26:prof	e26:prof
+qualifier	larevt		wirecell	hdf5    otes
+c14:debug	c14:debug	c14:debug   c14:debug
+c14:prof	c14:prof	c14:prof    c14:prof
+e26:debug	e26:debug	e26:debug   e26:debug
+e26:prof	e26:prof	e26:prof    e26:prof
 end_qualifier_list
 ####################################
 
