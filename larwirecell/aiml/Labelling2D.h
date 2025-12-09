@@ -5,8 +5,8 @@
 #include "WireCellIface/IAnodePlane.h"
 #include "WireCellIface/IConfigurable.h"
 #include "WireCellIface/IFrameFilter.h"
-#include "larwirecell/Interfaces/IArtEventVisitor.h"
 #include "lardataobj/Simulation/SimChannel.h"
+#include "larwirecell/Interfaces/IArtEventVisitor.h"
 
 #include <memory>
 #include <string>
@@ -46,11 +46,14 @@ namespace WireCell::AIML {
 
     // New functions for charge-based labeling with rebin
     std::vector<TrackChargeInfo> extract_track_charges(const sim::SimChannel& sc,
-                                                       int tdc_begin, int tdc_end) const;
+                                                       int tdc_begin,
+                                                       int tdc_end) const;
     std::pair<int, int> select_top2_track_ids(const sim::SimChannel& sc,
-                                              int tdc_begin, int tdc_end) const;
+                                              int tdc_begin,
+                                              int tdc_end) const;
     std::pair<int, int> select_top2_pids(const sim::SimChannel& sc,
-                                         int tdc_begin, int tdc_end) const;
+                                         int tdc_begin,
+                                         int tdc_end) const;
 
     WireCell::IAnodePlane::pointer m_anode;
     std::string m_anode_tn;
