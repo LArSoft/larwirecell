@@ -2,7 +2,7 @@
 
 #include "WireCellAux/SimpleTensor.h"
 #include "WireCellAux/SimpleTensorSet.h"
-#include "WireCellImg/PointCloudFacade.h"
+// #include "WireCellImg/PointCloudFacade.h"
 #include "WireCellUtil/Exceptions.h"
 
 #include <fstream>
@@ -30,9 +30,15 @@ void WireCell::QLMatch::dump_bee_3d(const Points::node_t& root, const std::strin
   std::vector<float_t> q;
   std::vector<int_t> cluster_id;
   int_t cid = 0;
-  for (const auto cnode : root.children()) { // this is a loop through all clusters ...
-    Scope scope = {"3d", {"x", "y", "z"}};
-    const auto& sv = cnode->value.scoped_view(scope);
+
+  auto grouping = root.value.facade<Grouping>();
+  std::vector<Cluster*> clusters = grouping->children();
+  std::sort(clusters.begin(), clusters.end(), [](const Cluster* cluster1, const Cluster* cluster2) {
+    return cluster1->get_length() > cluster2->get_length();
+  });
+
+  for (const auto cluster : clusters) { // this is a loop through all clusters ...
+    const auto& sv = cluster->sv3d();
 
     const auto& spcs = sv.pcs(); // spcs 'contains' all blobs in this cluster ...
     // int npoints = 0;
@@ -148,6 +154,76 @@ void WireCell::QLMatch::dump_bee_flash(const ITensorSet::pointer& ts, const std:
     data["op_pes"].append(op_pes);
     data["op_pes_pred"].append(op_pes);
     // std::cout << std::endl;
+  }
+
+  // Write cfg to file
+  std::ofstream file(fn);
+  if (file.is_open()) {
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "    ";
+    writer["precision"] = 6; // significant digits
+    std::unique_ptr<Json::StreamWriter> jsonWriter(writer.newStreamWriter());
+    jsonWriter->write(data, &file);
+    file.close();
+  }
+  else {
+    raise<ValueError>("Failed to open file: " + fn);
+  }
+}
+
+void WireCell::QLMatch::dump_bee_bundle(const FlashBundlesMap& f2bundle,
+                                        const std::map<Cluster*, int>& cluster_idx_map,
+                                        const std::string& fn)
+{
+  using spdlog::debug;
+
+  Json::Value data;
+  data["runNo"] = 0;
+  data["subRunNo"] = 0;
+  data["eventNo"] = 0;
+  data["geom"] = "sbnd";
+  data["op_t"] = Json::Value(Json::arrayValue);
+  data["op_pes"] = Json::Value(Json::arrayValue);
+  data["op_pes_pred"] = Json::Value(Json::arrayValue);
+  data["op_peTotal"] = Json::Value(Json::arrayValue);
+  data["cluster_id"] = Json::Value(Json::arrayValue);
+  data["op_nomatching_cluster_ids"] = Json::Value(Json::arrayValue);
+
+  for (auto it = f2bundle.begin(); it != f2bundle.end(); ++it) {
+    auto flash = it->first;
+    auto bundles = it->second;
+    auto op_pes = Json::Value(Json::arrayValue);
+    double op_peTotal = 0;
+    for (const auto& pe : flash->get_PEs()) {
+      op_pes.append(pe);
+      op_peTotal += pe;
+    }
+    // assume the same length for now
+    std::vector<double> op_pes_pred_c(flash->get_PEs().size(), 0.0);
+    for (size_t i = 0; i < bundles.size(); i++) {
+      auto bundle = bundles.at(i);
+      // if (!(bundle->get_consistent_flag())) continue;
+      // if (bundle->get_total_pred_light() < 100) continue;
+      // auto meas_pe_tot = flash->get_total_PE();
+      auto pred_pe_tot = bundle->get_total_pred_light();
+      if (pred_pe_tot < 100) continue;
+      // if (abs(pred_pe_tot - meas_pe_tot) > 0.5 * meas_pe_tot) {
+      //   continue;
+      // }
+      auto cluster = bundle->get_main_cluster();
+      auto cluster_id = cluster_idx_map.at(cluster);
+      auto op_cluster_id = Json::Value(Json::arrayValue);
+      op_cluster_id.append(cluster_id);
+      auto op_pes_pred = Json::Value(Json::arrayValue);
+      for (const auto& pe : bundle->get_pred_flash()) {
+        op_pes_pred.append(pe);
+      }
+      data["op_t"].append(flash->get_time() * 1e-3);
+      data["op_pes"].append(op_pes);
+      data["op_peTotal"].append(op_peTotal);
+      data["cluster_id"].append(op_cluster_id);
+      data["op_pes_pred"].append(op_pes_pred);
+    }
   }
 
   // Write cfg to file

@@ -68,15 +68,15 @@ void OpFlashSource::visit(art::Event& event)
 
   for (size_t iflash = 0; iflash < nflashes; ++iflash) {
     const auto& opflash = opflashes->at(iflash);
-    array[iflash][0] = opflash.Time() / units::microsecond; // TODO: check the unit
+    array[iflash][0] = opflash.Time() * units::microsecond;
     const auto& pes = opflash.PEs();
-    if (pes.size() < m_npmts) {
+    if (pes.size() > m_npmts) {
       raise<ValueError>(
         format("WireCell::OpFlashSource got unexpected number of PMTs expecting %d got %d",
                m_npmts,
                pes.size()));
     }
-    for (size_t ipmt = 0; ipmt < m_npmts; ++ipmt) {
+    for (size_t ipmt = 0; ipmt < pes.size(); ++ipmt) {
       array[iflash][ipmt + 1] = pes[ipmt];
     }
   }

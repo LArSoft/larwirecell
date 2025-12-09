@@ -1,0 +1,4 @@
+#include "opticalsimparameterisations_sbnd.fcl"
+
+VUVHits: @local::sbnd_vuv_RS100cm_hits_parameterization
+VISHits: @local::sbnd_vis_RS100cm_hits_parameterization

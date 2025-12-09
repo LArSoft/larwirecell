@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 find_package(cetmodules REQUIRED)
-project(larwirecell VERSION 10.01.05 LANGUAGES CXX)
+project(larwirecell VERSION 10.01.26 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
 
@@ -35,6 +35,7 @@ cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 find_package(art REQUIRED EXPORT)
 find_package(ROOT COMPONENTS Core REQUIRED EXPORT)
 
+find_package(larsim REQUIRED EXPORT)
 find_package(larcore REQUIRED EXPORT)
 find_package(lardata REQUIRED EXPORT)
 find_package(larevt REQUIRED EXPORT)

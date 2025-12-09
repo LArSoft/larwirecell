@@ -39,7 +39,8 @@ WireCell::Configuration CookedFrameSource::default_configuration() const
 
 void CookedFrameSource::configure(const WireCell::Configuration& cfg)
 {
-  m_scale = get(cfg, "scale", m_scale);
+  m_frame_scale = get(cfg, "frame_scale", m_frame_scale);
+  m_summary_scale = get(cfg, "summary_scale", m_summary_scale);
   m_tick = get(cfg, "tick", m_tick);
   m_nticks = get(cfg, "nticks", m_nticks);
   for (auto jtag : cfg["frame_tags"]) {
@@ -98,7 +99,7 @@ static double tdiff(const art::Timestamp& ts1, const art::Timestamp& ts2)
 
 static SimpleTrace* make_trace(const recob::Wire& rw,
                                unsigned int nticks_want,
-                               const double scale = 1.)
+                               const double frame_scale = 1.)
 {
   // uint
   const raw::ChannelID_t chid = rw.Channel();
@@ -116,9 +117,9 @@ static SimpleTrace* make_trace(const recob::Wire& rw,
   auto& q = strace->charge();
   for (unsigned int itick = 0; itick < nsamp; ++itick) {
     q[itick] =
-      scale *
+      frame_scale *
       sig
-        [itick]; // changed Ewerton 2023-10-06 recob::Wire it scaled up by a factor (make it onfigurable!!!)
+        [itick]; // changed Ewerton 2023-10-06 recob::Wire it frame_scaled up by a factor (make it onfigurable!!!)
   }
   for (unsigned int itick = nsamp; itick < nticks_want; ++itick) {
     q[itick] = baseline;
@@ -150,7 +151,7 @@ void CookedFrameSource::visit(art::Event& event)
     l->debug("wcls::CookedFrameSource: got {} {} recob::Wire objects", nchannels, recobwire_tag);
     for (size_t ind = 0; ind < nchannels; ++ind) {
       auto const& rw = rwv.at(ind);
-      SimpleTrace* trace = make_trace(rw, m_nticks, m_scale);
+      SimpleTrace* trace = make_trace(rw, m_nticks, m_frame_scale);
       const size_t trace_index = itraces->size();
 
       indices.push_back(trace_index);
@@ -210,7 +211,11 @@ void CookedFrameSource::visit(art::Event& event)
     auto trace_tag = m_trace_tags[ind];
     auto summary_tag = m_summary_tags[ind];
     if (tag2summaryh.find(summary_tag) != tag2summaryh.end()) {
-      sframe->tag_traces(trace_tag, tag2indices[recobwire_tag], *tag2summaryh[summary_tag]);
+      std::vector<double> summary;
+      for (auto val : *tag2summaryh[summary_tag]) {
+        summary.push_back(val * m_summary_scale);
+      }
+      sframe->tag_traces(trace_tag, tag2indices[recobwire_tag], summary);
     }
     else {
       sframe->tag_traces(trace_tag, tag2indices[recobwire_tag]);
