@@ -254,7 +254,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         flash_opdet_mask[idet] = 0;
     }
 
-    log->debug("flash time {} flash PE {} flash_x_offset {}",
+    log->trace("flash time {} flash PE {} flash_x_offset {}",
                int(flash_time) / 100.,
                int(flash->get_total_PE() * 100) / 100.,
                int(flash_x_offset * 100) / 100.);
@@ -347,7 +347,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         continue;
       }
 
-      log->debug("initial eval: flash {} and cluster {}, meas PE {}, pred PE {}, npts {}, ks_dis {}, chi2/ndf {}, ndf {}",
+      log->trace("initial eval: flash {} and cluster {}, meas PE {}, pred PE {}, npts {}, ks_dis {}, chi2/ndf {}, ndf {}",
         flash->get_flash_id(), global_cluster_idx_map[cluster],
         int(flash->get_total_PE()*100)/100.,
         int(bundle->get_total_pred_light()*100)/100.,
@@ -582,7 +582,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto bundle = bundles.at(k);
 
         if (solution(n)>0.05 || m_beamonly)
-          log->debug("first match: flash {} and cluster {}, solution={}",
+          log->trace("first match: flash {} and cluster {}, solution={}",
                     flash->get_flash_id(),
                     global_cluster_idx_map[bundle->get_main_cluster()],
                     solution(n));
@@ -724,7 +724,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         bundle->set_strength(solution(n));
 
         if (solution(n)>0.05 || m_beamonly){
-              log->debug("second match: flash {} and cluster {}, time {}, meas PE {}, pred PE {}, solution {}, ks_dis {}, chi2/ndf {}, consistent {}",
+              log->trace("second match: flash {} and cluster {}, time {}, meas PE {}, pred PE {}, solution {}, ks_dis {}, chi2/ndf {}, consistent {}",
                 flash->get_flash_id(),
                 global_cluster_idx_map[bundle->get_main_cluster()],
                 int(flash->get_time())/1e3,
@@ -804,16 +804,35 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       }
     }
 
+    // debug block
+    {
+      for (auto [flash, bundles] : results_flash_bundles_map) {
+        for (const auto& bundle : bundles) {
+          log->trace("results_flash_bundles_map: flash id {} time {} and cluster gidx {}, total_pred_light {}, strength {}, ks_dis {}, chi2/ndf {}",
+            flash->get_flash_id(),
+            flash->get_time(),
+            global_cluster_idx_map[bundle->get_main_cluster()],
+            bundle->get_total_pred_light(),
+            int(bundle->get_strength() * 1e4) / 10000.,
+            int(bundle->get_ks_dis() * 1000) / 1000.,
+            int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.);
+        }
+      }
+    }
+
       // BEE debug direct imaging output and dead blobs
     log->debug("done with matching");
     if (!m_bee_dir.empty()) {
-      std::string sub_dir = String::format("%s/%d", m_bee_dir, charge_ident);
+      std::string sub_dir = String::format("%s/%d", m_bee_dir, m_bee_index);
       Persist::assuredir(sub_dir);
       QLMatch::dump_bee_3d(
         *root_live.get(),
-        String::format("%s/%d-img-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+        String::format("%s/%d-img-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
+      // QLMatch::dump_bee_bundle(
+      //   results_flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
       QLMatch::dump_bee_bundle(
-        results_flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, charge_ident, m_anode->ident()));
+        flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
+      m_bee_index++;
     }
     log->debug(em("dump bee"));
 
@@ -823,8 +842,11 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   for (auto [flash, bundles] : flash_bundles_map) {
     for (auto bundle : bundles) {
       bundle->get_main_cluster()->set_cluster_t0(flash->get_time() * units::ns);
-      log->trace("final bundle: flash time {} ns, cluster t0 {}",
+      log->debug("flash_bundles_map: flash id {} time {} ns, cluster gidx {} total_pred_light {} t0 {}",
+        flash->get_flash_id(),
         flash->get_time(),
+        global_cluster_idx_map[bundle->get_main_cluster()],
+        bundle->get_total_pred_light(),
         bundle->get_main_cluster()->get_cluster_t0());
     }
   }
@@ -846,6 +868,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
   // dumy output
   // out = invec[0];
+  m_count++;
   return true;
 }
 
@@ -985,7 +1008,7 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
         continue;
       }
     }
-    log->debug("final bundle: flash {}, cluster *, strength {}, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
+    log->debug("organize_bundles: flash {}, cluster *, strength {}, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
               flash->get_flash_id(),
               // global_cluster_idx_map[bundle->get_main_cluster()],
               int(bundle->get_strength()*100)/100.,

@@ -32,6 +32,7 @@ namespace WireCell::QLMatch {
   private:
     // Count how many times we are called
     size_t m_count{0};
+    int m_bee_index{0};
     // Currently can only be 2, TODO: remove this?
     size_t m_multiplicity{2};
     // QL Matching configs 
