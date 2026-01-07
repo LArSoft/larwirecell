@@ -1,0 +1,44 @@
+
+# Task: init
+Implement Labelling2D:
+1. read in a set of tagged traces (2D sparse image) from the input IFrame::pointer following this /exp/dune/app/users/yuhw/wct-ref/img/src/MaskSlice.cxx, denote this input as "reco"
+2. read in SimChannel with a configurable artROOT label, which is essentially also a 2D sparse image, denote this input as "simchannel"
+3. try to match each pixel in "reco" with "simchannel" using this function: https://internal.dunescience.org/doxygen/classsim_1_1SimChannel.html#aadcd58ce655a71ec74af4fd77b48a813, denoted the output as "matched"
+4. make an output IFrame using the matched[0].TrackID for the matched pixels and -1 for the non-matched pixels, an example making an IFrame output could be larwirecell/Components/CookedFrameSource.cxx
+
+# Task: Update Labelling2D, PID trace
+1. use the trackID and ParticleInventoryService to get the PID for each matched pixel. following: /exp/dune/app/users/yuhw/larreco/larreco/WireCell/CellTree_module.cc
+2. assign 0 for the non-matched pixels
+3. tag the trackID traces and PID traces separately with different configurable labels.
+
+# Task: Add a separated json output stream for the aiml/Labelling2D for event level neutrino information
+- Specificly, add neutrino type (nue, numu), interaction type (CC, NC), energy, vertex
+  - Reference code here:
+    https://github.com/LArSoft/larreco/blob/develop/larreco/WireCell/CellTree_module.cc#L967
+    https://internal.dunescience.org/doxygen/classsimb_1_1MCNeutrino.html
+    https://internal.dunescience.org/doxygen/classsimb_1_1MCParticle.html
+
+- Output structure:
+  - each event has a invividual json file with name: `<frame->ident()>.json`
+  - For each json:
+    ```json
+    {
+        nu_pdg: ...
+        nu_ccnc:
+        nu_intType:
+        nu_energy:
+        nu_vertex_x:
+        nu_vertex_y:
+        nu_vertex_z:
+    }
+    ```
+- For the file IO handling, make compressed tar balls for all the events. The tar ball name nees to be configurable from the Labelling::configuration(), default should be meta.tar.gz. Using the WireCellUtil/Configuration for the IO handling. Refer to code here, but make it simpler since we don't need a folder structure:
+  https://github.com/WireCell/wire-cell-toolkit/blob/master/util/inc/WireCellUtil/Bee.h#L45
+  https://github.com/WireCell/wire-cell-toolkit/blob/master/util/src/Bee.cxx#L310
+
+# Task: Move the truth information dumper to Truth2h5
+- The current truth information dumper in Labelling2D (json, tar) content looks good now. But now I want to move that part of function to Truth2h5.h and Truth2h5.cxx as a separated component.
+- It should have similar inheretence like the Labelling2D (e.g., Aux::Logger, wcls::IArtEventVisitor, IFrameFilter, IConfigurable)
+- And instead of using json + tar. I want to use hdf5. Each event will have a dataset labeled by frame->ident().
+  - refer to code here: https://github.com/WireCell/wire-cell-toolkit/blob/master/hio/src/HDF5FrameTap.cxx
+- let me know if anything unclear
