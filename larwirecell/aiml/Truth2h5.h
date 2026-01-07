@@ -41,7 +41,7 @@ namespace WireCell::AIML {
     void visit(art::Event& event) override;
 
   private:
-    void reset();
+    void reset() override;
     void ensure_file();
     void write_event(const IFrame& frame);
 
