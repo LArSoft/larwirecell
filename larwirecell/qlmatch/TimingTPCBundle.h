@@ -104,8 +104,7 @@ namespace WireCell::QLMatch {
   typedef std::vector<TimingTPCBundle::pointer> TimingTPCBundleSelection;
   typedef std::set<TimingTPCBundle::pointer> TimingTPCBundleSet;
   typedef std::map<Opflash*, TimingTPCBundleSelection> FlashBundlesMap;
-  typedef std::map<WireCell::Clus::Facade::Cluster*, TimingTPCBundleSelection>
-    ClusterBundlesMap;
+  typedef std::map<WireCell::Clus::Facade::Cluster*, TimingTPCBundleSelection> ClusterBundlesMap;
 
 } // namespace WCP
 

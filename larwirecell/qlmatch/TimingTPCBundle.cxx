@@ -80,8 +80,8 @@ bool TimingTPCBundle::examine_bundle(TimingTPCBundle* candidate_bundle)
   std::vector<double> pe_err(m_nchan);
   std::vector<double> pred_pe(m_nchan);
 
-  double candidate_ks_dis=0;
-  double candidate_chi2=0; 
+  double candidate_ks_dis = 0;
+  double candidate_chi2 = 0;
 
   // Fill the initial data arrays
   for (int i = 0; i != m_nchan; i++) {
@@ -112,21 +112,22 @@ bool TimingTPCBundle::examine_bundle(TimingTPCBundle* candidate_bundle)
     }
   }
 
-  if (total_predicted > 0) {
-    candidate_ks_dis = calc_ks_test(measured_dist, predicted_dist);
-  }
+  if (total_predicted > 0) { candidate_ks_dis = calc_ks_test(measured_dist, predicted_dist); }
 
   ndf = 0;
   int nvalidopdets = 0;
   // Calculate chi-square statistics
   for (int j = 0; j != m_nchan; j++) {
-    if (opdet_mask[j] == 0) continue;
-    else nvalidopdets++;
+    if (opdet_mask[j] == 0)
+      continue;
+    else
+      nvalidopdets++;
     double cur_chi2 = 0;
 
     // TODO: add config for noise threshold of PE
-    if (pe[j] < 1  && pred_pe[j] < 1) {}
-    else ndf++;
+    if (pe[j] < 1 && pred_pe[j] < 1) {}
+    else
+      ndf++;
     // * can add different chisq calculation (or different denominator) for cluster flags
     cur_chi2 = pow(pred_pe[j] - pe[j], 2) / (pe[j] + pow(pe_err[j], 2));
     candidate_chi2 += cur_chi2;
@@ -134,12 +135,14 @@ bool TimingTPCBundle::examine_bundle(TimingTPCBundle* candidate_bundle)
 
   // if at least one of the metrics has improved
   // and if the overal metrics pass some threshold
-  std::cout << "original ks_dis " << ks_dis << " chi2/ndf " << chi2/ndf << std::endl;
-  std::cout << "candidate ks_dis " << candidate_ks_dis << " chi2/ndf " << candidate_chi2/ndf << std::endl;
-  if ((candidate_ks_dis < ks_dis || candidate_chi2 < chi2) && ((candidate_ks_dis < 0.2) && (candidate_chi2/ndf < 20))){ 
+  std::cout << "original ks_dis " << ks_dis << " chi2/ndf " << chi2 / ndf << std::endl;
+  std::cout << "candidate ks_dis " << candidate_ks_dis << " chi2/ndf " << candidate_chi2 / ndf
+            << std::endl;
+  if ((candidate_ks_dis < ks_dis || candidate_chi2 < chi2) &&
+      ((candidate_ks_dis < 0.2) && (candidate_chi2 / ndf < 20))) {
     return true;
   }
-  else { 
+  else {
     return false;
   }
 }
@@ -210,7 +213,7 @@ bool TimingTPCBundle::examine_bundle(TimingTPCBundle* candidate_bundle)
 //       if (dis < dis_save) { dis_save = dis; }
 //     }
 
-//     if (dis_save < dis_cut) { 
+//     if (dis_save < dis_cut) {
 //       std::cout << "Merging clusters with distance " << dis_save << std::endl;
 //       merge_clusters.push_back(temp_cluster); }
 //   }
@@ -253,7 +256,8 @@ void TimingTPCBundle::add_bundle(TimingTPCBundle* candidate_bundle)
 {
   // if the candidate bundle is worse than the current one
   if (ks_dis * pow(chi2 / ndf, 0.8) <
-      candidate_bundle->get_ks_dis() * pow(candidate_bundle->get_chi2() / candidate_bundle->get_ndf(), 0.8)) {
+      candidate_bundle->get_ks_dis() *
+        pow(candidate_bundle->get_chi2() / candidate_bundle->get_ndf(), 0.8)) {
     other_clusters.push_back(candidate_bundle->get_main_cluster());
     more_clusters.push_back(candidate_bundle->get_main_cluster());
 

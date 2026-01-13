@@ -72,13 +72,13 @@ void WireCell::QLMatch::QLMatching::configure(const WireCell::Configuration& cfg
 
   if (cfg["VUVEfficiency"].isArray()) {
     m_VUVEfficiency.clear();
-    for (auto vuv_eff : cfg["VUVEfficiency"]) 
+    for (auto vuv_eff : cfg["VUVEfficiency"])
       m_VUVEfficiency.push_back(vuv_eff.asDouble());
   }
 
   if (cfg["VISEfficiency"].isArray()) {
     m_VISEfficiency.clear();
-    for (auto vis_eff : cfg["VISEfficiency"]) 
+    for (auto vis_eff : cfg["VISEfficiency"])
       m_VISEfficiency.push_back(vis_eff.asDouble());
   }
 }
@@ -156,7 +156,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     }
   }
 
-  // ! end things to move to config block 
+  // ! end things to move to config block
   std::string filename = "semimodel_sbnd.fcl";
   std::string pathvar("FHICL_FILE_PATH");
   const std::string vuv_key = "VUVHits";
@@ -216,9 +216,9 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     return cluster1->get_length() > cluster2->get_length();
   });
 
-  // add default cluster_t0 to all clusters 
-  std::for_each(clusters.begin(), clusters.end(),
-  [this](Cluster* cluster) { cluster->set_cluster_t0(-1e12); });
+  // add default cluster_t0 to all clusters
+  std::for_each(
+    clusters.begin(), clusters.end(), [this](Cluster* cluster) { cluster->set_cluster_t0(-1e12); });
 
   // create global maps
   std::map<Opflash*, int> global_flash_idx_map;
@@ -352,14 +352,16 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         continue;
       }
 
-      log->trace("initial eval: flash {} and cluster {}, meas PE {}, pred PE {}, npts {}, ks_dis {}, chi2/ndf {}, ndf {}",
-        flash->get_flash_id(), global_cluster_idx_map[cluster],
-        int(flash->get_total_PE()*100)/100.,
-        int(bundle->get_total_pred_light()*100)/100.,
-        npt,
-        int(bundle->get_ks_dis() * 1000) / 1000.,
-        int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.,
-        bundle->get_ndf());
+      log->trace("initial eval: flash {} and cluster {}, meas PE {}, pred PE {}, npts {}, ks_dis "
+                 "{}, chi2/ndf {}, ndf {}",
+                 flash->get_flash_id(),
+                 global_cluster_idx_map[cluster],
+                 int(flash->get_total_PE() * 100) / 100.,
+                 int(bundle->get_total_pred_light() * 100) / 100.,
+                 npt,
+                 int(bundle->get_ks_dis() * 1000) / 1000.,
+                 int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.,
+                 bundle->get_ndf());
 
       pre_bundles.insert(bundle);
 
@@ -509,7 +511,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (uint j = 0; j < nopdet; j++) {
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
-        auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+        auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx), 2));
 
         M(i * nopdet + j) = pe / pe_err;              // measurement term
         P(i * nopdet + j, nbundle + i) = pe / pe_err; // measurement alone term
@@ -522,19 +524,19 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j = 0; j < nopdet; j++) {
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-          P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
+          auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx), 2));
+          P(i * nopdet + j, pairs.size()) = pred_pe / pe_err;
         }
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
 
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
-        if (abs(pred_pe_tot - meas_pe_tot) > 0.3*meas_pe_tot){
-          weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot;
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.3 * meas_pe_tot) {
+          weights(ik) = abs(pred_pe_tot - meas_pe_tot) / meas_pe_tot;
           ik++;
         }
-        else{
+        else {
           weights(ik) = 0.3;
           ik++;
         }
@@ -546,7 +548,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       i++;
     } // end loop over flashes
 
-    for (uint i=0; i<nflash;i++){
+    for (uint i = 0; i < nflash; i++) {
       weights(nbundle + i) = 0.5;
     }
 
@@ -565,8 +567,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t y = PT * M + PFT * MF; // predicted x measured + p1/p2 x measured (bi x Mij)
     Ress::matrix_t X = PT * P + PFT * PF; // predicted^2 + p1/p2 x predicted
 
-    Ress::vector_t initial  = Ress::vector_t::Zero(nbundle + nflash);
-    for (size_t n=0; n <pairs.size(); n++){
+    Ress::vector_t initial = Ress::vector_t::Zero(nbundle + nflash);
+    for (size_t n = 0; n < pairs.size(); n++) {
       initial(n) = 1.0;
     }
     log->debug("initial dim {}", initial.rows());
@@ -586,12 +588,12 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (size_t k = 0; k < bundles.size(); k++) {
         auto bundle = bundles.at(k);
 
-        if (solution(n)>0.05 || m_beamonly)
+        if (solution(n) > 0.05 || m_beamonly)
           log->trace("first match: flash {} and cluster {}, solution={}",
-                    flash->get_flash_id(),
-                    global_cluster_idx_map[bundle->get_main_cluster()],
-                    solution(n));
-        else{
+                     flash->get_flash_id(),
+                     global_cluster_idx_map[bundle->get_main_cluster()],
+                     solution(n));
+        else {
           to_be_removed.push_back(bundle);
         }
         n++;
@@ -659,7 +661,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       for (uint j = 0; j < nopdet; j++) {
         auto opdet_idx = opdet_idx_v.at(j);
         auto pe = flash->get_PE(opdet_idx);
-        auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
+        auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx), 2));
 
         M(i * nopdet + j) = pe / pe_err; // measurement term
       }
@@ -672,8 +674,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         for (uint j = 0; j < nopdet; j++) {
           auto opdet_idx = opdet_idx_v.at(j);
           auto pred_pe = pred_flash.at(opdet_idx);
-          auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx),2));
-          P(i*nopdet + j, pairs.size()) = pred_pe/pe_err;
+          auto pe_err = sqrt(flash->get_PE(opdet_idx) + pow(flash->get_PE_err(opdet_idx), 2));
+          P(i * nopdet + j, pairs.size()) = pred_pe / pe_err;
         }
 
         pairs.push_back(std::make_pair(flash, bundle->get_main_cluster()));
@@ -681,15 +683,16 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto meas_pe_tot = flash->get_total_PE();
         auto pred_pe_tot = bundle->get_total_pred_light();
 
-        if (abs(pred_pe_tot - meas_pe_tot) > 0.3*meas_pe_tot){
-          weights(ik) = abs(pred_pe_tot - meas_pe_tot)/meas_pe_tot + delta_shape*nopdet*ks_dis/lambda;
+        if (abs(pred_pe_tot - meas_pe_tot) > 0.3 * meas_pe_tot) {
+          weights(ik) =
+            abs(pred_pe_tot - meas_pe_tot) / meas_pe_tot + delta_shape * nopdet * ks_dis / lambda;
           ik++;
         }
-        else{
-          weights(ik) = 0.3 + delta_shape*nopdet*ks_dis/lambda;
+        else {
+          weights(ik) = 0.3 + delta_shape * nopdet * ks_dis / lambda;
           ik++;
         }
-      } // loop over bundles in flash 
+      } // loop over bundles in flash
       i++;
     } // end loop over flashes
 
@@ -708,8 +711,8 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     Ress::vector_t y = PT * M + PFT * MF;
     Ress::matrix_t X = PT * P + PFT * PF;
 
-    Ress::vector_t initial  = Ress::vector_t::Zero(nbundle);
-    for (size_t n=0; n <pairs.size(); n++){
+    Ress::vector_t initial = Ress::vector_t::Zero(nbundle);
+    for (size_t n = 0; n < pairs.size(); n++) {
       initial(n) = 1.0;
     }
     Ress::Params params;
@@ -728,17 +731,18 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
         auto bundle = bundles.at(k);
         bundle->set_strength(solution(n));
 
-        if (solution(n)>0.05 || m_beamonly){
-              log->trace("second match: flash {} and cluster {}, time {}, meas PE {}, pred PE {}, solution {}, ks_dis {}, chi2/ndf {}, consistent {}",
-                flash->get_flash_id(),
-                global_cluster_idx_map[bundle->get_main_cluster()],
-                int(flash->get_time())/1e3,
-                int(flash->get_total_PE()*100)/100.,
-                int(bundle->get_total_pred_light()*100)/100.,
-                int(solution(n)*1e4)/10000.,
-                int(bundle->get_ks_dis()*1000)/1000.,
-                int(bundle->get_chi2()/bundle->get_ndf()*100)/100.,
-                bundle->get_consistent_flag());
+        if (solution(n) > 0.05 || m_beamonly) {
+          log->trace("second match: flash {} and cluster {}, time {}, meas PE {}, pred PE {}, "
+                     "solution {}, ks_dis {}, chi2/ndf {}, consistent {}",
+                     flash->get_flash_id(),
+                     global_cluster_idx_map[bundle->get_main_cluster()],
+                     int(flash->get_time()) / 1e3,
+                     int(flash->get_total_PE() * 100) / 100.,
+                     int(bundle->get_total_pred_light() * 100) / 100.,
+                     int(solution(n) * 1e4) / 10000.,
+                     int(bundle->get_ks_dis() * 1000) / 1000.,
+                     int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.,
+                     bundle->get_consistent_flag());
         }
         else {
           to_be_removed.push_back(bundle);
@@ -753,17 +757,17 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
     // save only the best match for each cluster
     // at this point, one cluster can be matched to at most one flash
-    // but one flash can be matched to multiple clusters 
-    std::map<int, std::pair<Opflash*,double>> matched_pairs;
-    for (size_t i=0; i!=pairs.size(); i++){
-      if (solution(i) > 0.05){
+    // but one flash can be matched to multiple clusters
+    std::map<int, std::pair<Opflash*, double>> matched_pairs;
+    for (size_t i = 0; i != pairs.size(); i++) {
+      if (solution(i) > 0.05) {
         int cluster_idx = cluster_idx_map[pairs.at(i).second];
         auto flash = pairs.at(i).first;
-        if (matched_pairs.find(cluster_idx) == matched_pairs.end()){
+        if (matched_pairs.find(cluster_idx) == matched_pairs.end()) {
           matched_pairs[cluster_idx] = std::make_pair(flash, solution(i));
         }
-        else{
-          if (solution(i) > matched_pairs[cluster_idx].second){
+        else {
+          if (solution(i) > matched_pairs[cluster_idx].second) {
             matched_pairs[cluster_idx] = std::make_pair(flash, solution(i));
           }
         }
@@ -771,18 +775,18 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     }
     // * good matches should have ks_dis < 0.2 and chi2/ndf < 20
     TimingTPCBundleSelection results_bundles;
-    
-    for (auto it = clusters.begin(); it != clusters.end(); ++it){
+
+    for (auto it = clusters.begin(); it != clusters.end(); ++it) {
       auto cluster = *it;
-      if (cluster_idx_map.find(cluster) != cluster_idx_map.end()){
+      if (cluster_idx_map.find(cluster) != cluster_idx_map.end()) {
         auto cluster_idx = cluster_idx_map[cluster];
-        if (matched_pairs.find(cluster_idx) != matched_pairs.end()){
+        if (matched_pairs.find(cluster_idx) != matched_pairs.end()) {
           auto flash = matched_pairs[cluster_idx].first;
           // auto strength = matched_pairs[cluster_idx].second;
           auto bundle = flash_cluster_bundles_map[std::make_pair(flash, cluster)];
           results_bundles.push_back(bundle);
         }
-        else{
+        else {
           // if cluster is not present in the matched pairs
           // create a bundle with no flash
           Opflash* flash = nullptr;
@@ -796,15 +800,15 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
 
     // * given results_bundles, create new FlashBundlesMap
     FlashBundlesMap results_flash_bundles_map;
-    for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it){
+    for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it) {
       auto bundle = *it;
       auto flash = bundle->get_flash();
-      if (results_flash_bundles_map.find(flash) == results_flash_bundles_map.end()){
+      if (results_flash_bundles_map.find(flash) == results_flash_bundles_map.end()) {
         std::vector<TimingTPCBundle::pointer> bundles;
         bundles.push_back(bundle);
         results_flash_bundles_map[flash] = bundles;
       }
-      else{
+      else {
         results_flash_bundles_map[flash].push_back(bundle);
       }
     }
@@ -813,19 +817,20 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
     {
       for (auto [flash, bundles] : results_flash_bundles_map) {
         for (const auto& bundle : bundles) {
-          log->trace("results_flash_bundles_map: flash id {} time {} and cluster gidx {}, total_pred_light {}, strength {}, ks_dis {}, chi2/ndf {}",
-            flash->get_flash_id(),
-            flash->get_time(),
-            global_cluster_idx_map[bundle->get_main_cluster()],
-            bundle->get_total_pred_light(),
-            int(bundle->get_strength() * 1e4) / 10000.,
-            int(bundle->get_ks_dis() * 1000) / 1000.,
-            int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.);
+          log->trace("results_flash_bundles_map: flash id {} time {} and cluster gidx {}, "
+                     "total_pred_light {}, strength {}, ks_dis {}, chi2/ndf {}",
+                     flash->get_flash_id(),
+                     flash->get_time(),
+                     global_cluster_idx_map[bundle->get_main_cluster()],
+                     bundle->get_total_pred_light(),
+                     int(bundle->get_strength() * 1e4) / 10000.,
+                     int(bundle->get_ks_dis() * 1000) / 1000.,
+                     int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.);
         }
       }
     }
 
-      // BEE debug direct imaging output and dead blobs
+    // BEE debug direct imaging output and dead blobs
     log->debug("done with matching");
     if (!m_bee_dir.empty()) {
       std::string sub_dir = String::format("%s/%d", m_bee_dir, m_bee_index);
@@ -836,18 +841,20 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
       // QLMatch::dump_bee_bundle(
       //   results_flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
       QLMatch::dump_bee_bundle(
-        flash_bundles_map, global_cluster_idx_map, String::format("%s/%d-op-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
+        flash_bundles_map,
+        global_cluster_idx_map,
+        String::format("%s/%d-op-apa%d.json", sub_dir, m_bee_index, m_anode->ident()));
       m_bee_index++;
     }
     log->debug(em("dump bee"));
 
   } // end second matching round
 
-
   for (auto [flash, bundles] : flash_bundles_map) {
     for (auto bundle : bundles) {
       bundle->get_main_cluster()->set_cluster_t0(flash->get_time() * units::ns);
-      log->debug("flash_bundles_map: flash id {} time {} ns, cluster gidx {} total_pred_light {} t0 {}",
+      log->debug(
+        "flash_bundles_map: flash id {} time {} ns, cluster gidx {} total_pred_light {} t0 {}",
         flash->get_flash_id(),
         flash->get_time(),
         global_cluster_idx_map[bundle->get_main_cluster()],
@@ -859,12 +866,12 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   {
     ITensor::vector outtens;
 
-    auto tens_live = Aux::TensorDM::as_tensors(*root_live, inpath+"/live");
+    auto tens_live = Aux::TensorDM::as_tensors(*root_live, inpath + "/live");
     log->debug("Output {} tensors for live", tens_live.size());
     outtens.insert(outtens.end(), tens_live.begin(), tens_live.end());
 
     auto root_dead = Aux::TensorDM::as_pctree(charge_tens, inpath + "/dead");
-    auto tens_dead = Aux::TensorDM::as_tensors(*root_dead, inpath+"/dead");
+    auto tens_dead = Aux::TensorDM::as_tensors(*root_dead, inpath + "/dead");
     log->debug("Output {} tensors for dead", tens_dead.size());
     outtens.insert(outtens.end(), tens_dead.begin(), tens_dead.end());
 
@@ -919,22 +926,23 @@ void WireCell::QLMatch::QLMatching::remove_bundle_selection(
   }
 }
 
-void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& results_bundles,
-     std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map)
+void WireCell::QLMatch::QLMatching::organize_bundles(
+  TimingTPCBundleSelection& results_bundles,
+  std::map<std::pair<Opflash*, Cluster*>, TimingTPCBundle::pointer>& flash_cluster_bundles_map)
 {
   // construct map for all results
   log->debug("organizing bundles");
-  std::map<Opflash*, TimingTPCBundleSelection> eval_flash_bundles_map; 
-  for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it){
+  std::map<Opflash*, TimingTPCBundleSelection> eval_flash_bundles_map;
+  for (auto it = results_bundles.begin(); it != results_bundles.end(); ++it) {
     auto bundle = *it;
     auto flash = bundle->get_flash();
     if (flash == nullptr) continue;
-    if (eval_flash_bundles_map.find(flash) == eval_flash_bundles_map.end()){
+    if (eval_flash_bundles_map.find(flash) == eval_flash_bundles_map.end()) {
       TimingTPCBundleSelection bundles;
       bundles.push_back(bundle);
       eval_flash_bundles_map[flash] = bundles;
     }
-    else{
+    else {
       eval_flash_bundles_map[flash].push_back(bundle);
     }
   }
@@ -943,7 +951,7 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
   // TimingTPCBundleSelection third_round_bundles;
 
   //* first round: evaluate primary matches
-  for (auto it = eval_flash_bundles_map.begin(); it != eval_flash_bundles_map.end(); ++it){
+  for (auto it = eval_flash_bundles_map.begin(); it != eval_flash_bundles_map.end(); ++it) {
     auto& orig_bundles = it->second;
     auto flash = it->first;
 
@@ -952,81 +960,83 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
     double best_strength = 0;
 
     // * find the bundle with the highest strength (best solution)
-    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt){
+    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt) {
       auto bundle = *jt;
       auto strength = bundle->get_strength();
-      if (strength > best_strength){
+      if (strength > best_strength) {
         best_strength = strength;
         best_bundle = bundle.get();
       }
-    } 
+    }
     log->debug("best bundle strength {} for flash {}", best_strength, flash->get_flash_id());
-    // * see if performance improves by combining bundles 
-    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt){
+    // * see if performance improves by combining bundles
+    for (auto jt = orig_bundles.begin(); jt != orig_bundles.end(); ++jt) {
       auto bundle = (*jt).get();
-      if (bundle != best_bundle){
+      if (bundle != best_bundle) {
         // * if combination of bundles passes examination
         // ! TODO: this needs to be validated, currently only performing cut on ks_dis and chi2/ndf
-        if (best_bundle->examine_bundle(bundle)){
+        if (best_bundle->examine_bundle(bundle)) {
           best_bundle->add_bundle(bundle);
           to_be_removed.push_back(*jt);
         }
-        else{
+        else {
           // second_round_bundles.push_back(*jt);
           // ! TODO: not doing a second round right now
           to_be_removed.push_back(*jt);
         }
       }
-    } // loop over orig bundles associated with this flash 
+    } // loop over orig bundles associated with this flash
 
-    for (auto it=to_be_removed.begin(); it != to_be_removed.end(); it++){
+    for (auto it = to_be_removed.begin(); it != to_be_removed.end(); it++) {
       results_bundles.erase(find(results_bundles.begin(), results_bundles.end(), *it));
     }
     to_be_removed.clear();
 
-    if (best_bundle != nullptr){
+    if (best_bundle != nullptr) {
       // * only actually merge clusters if the flash is a beam-related flash
       // if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime){
-      if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime){
+      if (flash->get_time() > m_beam_mintime && flash->get_time() < m_beam_maxtime) {
         // best_bundle->examine_merge_clusters();
         log->debug("after merge, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
-                  int(flash->get_total_PE()*100)/100.,
-                  int(best_bundle->get_total_pred_light()*100)/100.,
-                  int(best_bundle->get_ks_dis()*1000)/1000.,
-                  int(best_bundle->get_chi2()/best_bundle->get_ndf()*100)/100.);
+                   int(flash->get_total_PE() * 100) / 100.,
+                   int(best_bundle->get_total_pred_light() * 100) / 100.,
+                   int(best_bundle->get_ks_dis() * 1000) / 1000.,
+                   int(best_bundle->get_chi2() / best_bundle->get_ndf() * 100) / 100.);
       }
     }
   } // loop over flash
 
   TimingTPCBundleSelection to_be_removed;
 
-  for (auto it = results_bundles.begin(); it != results_bundles.end(); it++){
+  for (auto it = results_bundles.begin(); it != results_bundles.end(); it++) {
     auto bundle = *it;
     auto flash = bundle->get_flash();
-    if (flash->get_time() < m_beam_mintime || flash->get_time() > m_beam_maxtime){
-      if (bundle->get_ks_dis() > 0.2 || bundle->get_chi2()/bundle->get_ndf() > 20){
+    if (flash->get_time() < m_beam_mintime || flash->get_time() > m_beam_maxtime) {
+      if (bundle->get_ks_dis() > 0.2 || bundle->get_chi2() / bundle->get_ndf() > 20) {
         to_be_removed.push_back(bundle);
         continue;
       }
-      else if (abs(flash->get_total_PE() - bundle->get_total_pred_light()) > 0.5*flash->get_total_PE()){
+      else if (abs(flash->get_total_PE() - bundle->get_total_pred_light()) >
+               0.5 * flash->get_total_PE()) {
         to_be_removed.push_back(bundle);
         continue;
       }
     }
-    log->debug("organize_bundles: flash {}, cluster *, strength {}, meas pe {}, pred pe {}, ks_dis {}, chi2/ndf {}",
-              flash->get_flash_id(),
-              // global_cluster_idx_map[bundle->get_main_cluster()],
-              int(bundle->get_strength()*100)/100.,
-              int(flash->get_total_PE()*100)/100.,
-              int(bundle->get_total_pred_light()*100)/100.,
-              int(bundle->get_ks_dis()*1000)/1000.,
-              int(bundle->get_chi2()/bundle->get_ndf()*100)/100.);
+    log->debug("organize_bundles: flash {}, cluster *, strength {}, meas pe {}, pred pe {}, ks_dis "
+               "{}, chi2/ndf {}",
+               flash->get_flash_id(),
+               // global_cluster_idx_map[bundle->get_main_cluster()],
+               int(bundle->get_strength() * 100) / 100.,
+               int(flash->get_total_PE() * 100) / 100.,
+               int(bundle->get_total_pred_light() * 100) / 100.,
+               int(bundle->get_ks_dis() * 1000) / 1000.,
+               int(bundle->get_chi2() / bundle->get_ndf() * 100) / 100.);
   }
-  for (auto it=to_be_removed.begin(); it != to_be_removed.end(); it++){
+  for (auto it = to_be_removed.begin(); it != to_be_removed.end(); it++) {
     results_bundles.erase(find(results_bundles.begin(), results_bundles.end(), *it));
   }
 
-  // // * second round 
+  // // * second round
   // TimingTPCBundleSelection to_be_removed;
   // std::set<Opflash*> tried_flashes;
   // for (auto it=second_round_bundles.begin(); it!=second_round_bundles.end(); it++){
@@ -1037,5 +1047,4 @@ void WireCell::QLMatch::QLMatching::organize_bundles(TimingTPCBundleSelection& r
   //     TimingTPCBundle *best_bundle = (*jt);
   //   }
   // }
-
 }
