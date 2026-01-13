@@ -11,3 +11,4 @@ cut
 .vscode
 latexmk-out
 auto
+out/

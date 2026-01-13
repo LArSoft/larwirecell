@@ -51,7 +51,7 @@ void OpFlashSource::configure(const WireCell::Configuration& cfg)
 
 void OpFlashSource::visit(art::Event& event)
 {
-  log->debug("OpFlashSource::visit {}", m_inputTag.encode());
+  log->debug("OpFlashSource::visit event{} input tag {}", event.event(), m_inputTag.encode());
   art::Handle<std::vector<recob::OpFlash>> opflashes;
   event.getByLabel(m_inputTag, opflashes);
   if (!opflashes.isValid()) {
@@ -88,12 +88,19 @@ void OpFlashSource::visit(art::Event& event)
   Configuration set_md;
   auto tset = std::make_shared<SimpleTensorSet>(event.event(), set_md, ITensor::shared_vector(itv));
   m_tensorsets.push_back(tset);
+  m_tensorsets.push_back(nullptr);
 }
 
 bool OpFlashSource::operator()(WireCell::ITensorSet::pointer& tensorset)
 {
-  if (m_tensorsets.empty()) { return false; }
+  log->debug("OpFlashSource::operator() m_tensorsets.size() {}", m_tensorsets.size());
+  tensorset = nullptr;
+  if (m_tensorsets.empty()) {
+    log->debug("EOS at call {}", m_count++);
+    return false;
+  }
   tensorset = m_tensorsets.front();
   m_tensorsets.pop_front();
+  m_count++;
   return true;
 }

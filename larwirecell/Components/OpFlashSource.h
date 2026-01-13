@@ -35,6 +35,9 @@ namespace wcls {
     virtual void configure(const WireCell::Configuration& config);
 
   private:
+    // Count how many times we are called
+    size_t m_count{0};
+
     std::deque<WireCell::ITensorSet::pointer> m_tensorsets;
 
     // label:instance:processName

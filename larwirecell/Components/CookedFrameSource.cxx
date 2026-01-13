@@ -228,11 +228,16 @@ void CookedFrameSource::visit(art::Event& event)
 
 bool CookedFrameSource::operator()(WireCell::IFrame::pointer& frame)
 {
+  l->debug("CookedFrameSource::operator() m_frames.size() {}", m_frames.size());
   frame = nullptr;
-  if (m_frames.empty()) { return false; }
+  if (m_frames.empty()) {
+    l->debug("EOS at call {}", m_count++);
+    return false;
+  }
   frame = m_frames.front();
   l->debug("CookedFrameSource output {}", Aux::taginfo(frame));
   m_frames.pop_front();
+  m_count++;
   return true;
 }
 // Local Variables:

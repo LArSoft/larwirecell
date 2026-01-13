@@ -38,6 +38,9 @@ namespace wcls {
     virtual void configure(const WireCell::Configuration& config);
 
   private:
+    // Count how many times we are called
+    size_t m_count{0};
+
     std::deque<WireCell::IFrame::pointer> m_frames;
     double m_tick;
     int m_nticks;
