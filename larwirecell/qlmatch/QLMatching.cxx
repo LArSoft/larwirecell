@@ -22,6 +22,11 @@
 #include "larsim/PhotonPropagation/OpticalPathTools/OpticalPath.h"
 #include "larsim/PhotonPropagation/SemiAnalyticalModel.h"
 
+#if defined __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
+
 WIRECELL_FACTORY(QLMatching,
                  WireCell::QLMatch::QLMatching,
                  WireCell::INamed,
@@ -217,6 +222,7 @@ bool WireCell::QLMatch::QLMatching::operator()(const input_vector& invec, output
   });
 
   // add default cluster_t0 to all clusters
+  // c14 warning: lambda capture 'this' is not used [-Werror,-Wunused-lambda-capture]
   std::for_each(
     clusters.begin(), clusters.end(), [this](Cluster* cluster) { cluster->set_cluster_t0(-1e12); });
 
@@ -1048,3 +1054,6 @@ void WireCell::QLMatch::QLMatching::organize_bundles(
   //   }
   // }
 }
+#if defined __clang__
+#pragma clang diagnostic pop
+#endif
