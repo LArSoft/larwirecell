@@ -315,7 +315,7 @@ void FrameSaver::save_as_raw(art::Event& event)
       }
       raw::RawDigit::ADCvector_t adcv(nticks);
       for (size_t ind = 0; ind < ncharge; ++ind) {
-        if(finite(charge[ind]))
+        if (finite(charge[ind]))
           adcv[tbin + ind] = scale * charge[ind]; // scale + truncate/redigitize
         else
           adcv[tbin + ind] = 0;
