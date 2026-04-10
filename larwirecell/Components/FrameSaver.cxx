@@ -315,7 +315,10 @@ void FrameSaver::save_as_raw(art::Event& event)
       }
       raw::RawDigit::ADCvector_t adcv(nticks);
       for (size_t ind = 0; ind < ncharge; ++ind) {
-        adcv[tbin + ind] = scale * charge[ind]; // scale + truncate/redigitize
+        if(finite(charge[ind]))
+          adcv[tbin + ind] = scale * charge[ind]; // scale + truncate/redigitize
+        else
+          adcv[tbin + ind] = 0;
       }
       out->emplace_back(raw::RawDigit(chid, nticks, adcv, raw::kNone));
       if (m_pedestal_mean.asString() == "native") {
