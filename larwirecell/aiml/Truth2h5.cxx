@@ -137,9 +137,11 @@ bool AIML::Truth2h5::operator()(const input_pointer& in, output_pointer& out)
 void AIML::Truth2h5::ensure_file()
 {
   if (m_file >= 0) { return; }
-  m_file = H5Fopen(m_output_file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+  // Create a fresh file at first use so datasets from a previous run in the
+  // same directory cannot collide; fall back to appending if create fails.
+  m_file = H5Fcreate(m_output_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   if (m_file < 0) {
-    m_file = H5Fcreate(m_output_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    m_file = H5Fopen(m_output_file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     if (m_file < 0) { log->error("Truth2h5 failed to open output file {}", m_output_file); }
   }
 }
