@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -54,6 +55,10 @@ namespace WireCell::AIML {
     std::pair<int, int> select_top2_pids(const sim::SimChannel& sc,
                                          int tdc_begin,
                                          int tdc_end) const;
+    // Returns {energyfrac_1st, energyfrac_2nd, total_numElectrons} for the top-2 tracks by charge
+    std::tuple<float, float, float> select_top2_energyfracs(const sim::SimChannel& sc,
+                                                             int tdc_begin,
+                                                             int tdc_end) const;
 
     WireCell::IAnodePlane::pointer m_anode;
     std::string m_anode_tn;
@@ -64,6 +69,9 @@ namespace WireCell::AIML {
     std::string m_output_trace_tag_trackid_2nd;
     std::string m_output_trace_tag_pid_1st;
     std::string m_output_trace_tag_pid_2nd;
+    std::string m_output_trace_tag_energyfrac_1st;
+    std::string m_output_trace_tag_energyfrac_2nd;
+    std::string m_output_trace_tag_total_numelectrons;
     std::string m_output_trace_tag_rebinned_reco;
     std::vector<std::string> m_frame_tags;
     std::string m_simchannel_label;
