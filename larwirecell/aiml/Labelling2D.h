@@ -57,8 +57,8 @@ namespace WireCell::AIML {
                                          int tdc_end) const;
     // Returns {energyfrac_1st, energyfrac_2nd, total_numElectrons} for the top-2 tracks by charge
     std::tuple<float, float, float> select_top2_energyfracs(const sim::SimChannel& sc,
-                                                             int tdc_begin,
-                                                             int tdc_end) const;
+                                                            int tdc_begin,
+                                                            int tdc_end) const;
 
     WireCell::IAnodePlane::pointer m_anode;
     std::string m_anode_tn;
