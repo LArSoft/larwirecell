@@ -621,10 +621,11 @@ bool AIML::TrackIDPIDMap2h5::keep_mc(int tid) const
 
 bool AIML::TrackIDPIDMap2h5::dump_mc_json_node(int tid, std::ostream& out) const
 {
-  if (m_trackid_to_pid.find(tid) == m_trackid_to_pid.end()) return false;
+  auto it = m_trackid_to_pid.find(tid);
+  if (it == m_trackid_to_pid.end()) return false;
   if (!keep_mc(tid)) return false;
 
-  int pdg = m_trackid_to_pid.at(tid);
+  int pdg = it->second;
 
   // KE in MeV
   int ke_mev = 0;
