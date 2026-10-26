@@ -63,13 +63,43 @@ SUMMARY_PY="$HERE/wires-summary.py"
 read_json() { python3 -c "import json,sys;print(json.load(open('$INPUT')).get('$1',''))"; }
 ERA=$(read_json era); TECH=$(read_json technology); VAR=$(read_json variant)
 GDML=$(read_json gdml); DETNAME=$(read_json detector_name)
+GDML_SHA1=$(read_json gdml_sha1sum)
 SORTER=$(read_json sorter); CMAP=$(read_json channel_map)
 GROUPING=$(read_json grouping); [ -n "$GROUPING" ] || GROUPING=tpcset
 CORR=$(read_json correction);  [ -n "$CORR" ] || CORR=4
 for v in ERA TECH VAR GDML DETNAME SORTER; do
   eval "val=\$$v"; [ -n "$val" ] || { echo "ERROR: input missing '$v'" >&2; exit 1; }
 done
-[ -f "$GDML" ] || { echo "ERROR: gdml not found: $GDML" >&2; exit 1; }
+# Resolve the GDML.  An absolute path is used as-is.  A relative path (including
+# a bare basename) is resolved by first checking the current working directory,
+# then walking the ':'-separated $GDML_PATH.  The first existing match is taken.
+# If the spec provides "gdml_sha1sum", the found file's sha1sum must match it or
+# it is a fatal error (if absent, the first filename match is accepted).
+resolve_gdml() {
+  local g="$1"
+  case "$g" in
+    /*) [ -f "$g" ] && { printf '%s' "$g"; return 0; } ;;   # absolute
+    *)
+      [ -f "$PWD/$g" ] && { printf '%s' "$PWD/$g"; return 0; }   # working dir
+      local d
+      for d in $(printf '%s' "${GDML_PATH:-}" | tr ':' ' '); do
+        [ -f "$d/$g" ] && { printf '%s' "$d/$g"; return 0; }     # GDML_PATH entries
+      done ;;
+  esac
+  return 1
+}
+GDML_RESOLVED="$(resolve_gdml "$GDML")" \
+  || { echo "ERROR: gdml '$GDML' not found in CWD or \$GDML_PATH" >&2; exit 1; }
+GDML="$GDML_RESOLVED"
+if [ -n "$GDML_SHA1" ]; then
+  got=$(sha1sum "$GDML" | awk '{print $1}')
+  [ "$got" = "$GDML_SHA1" ] || {
+    echo "ERROR: gdml sha1 mismatch for $GDML" >&2
+    echo "  expected: $GDML_SHA1" >&2
+    echo "  found:    $got" >&2
+    exit 1; }
+  echo ">>> gdml sha1 : verified ($got)"
+fi
 
 CANON="${ERA}${TECH}-${VAR}"
 mkdir -p "$OUTDIR"
@@ -86,16 +116,19 @@ cat > "$FCL" <<EOF
 process_name: wireswriter
 
 services: {
+  # The channel map is chosen by DUNEWireReadout from the geometry Name.
   WireReadout: {
     service_provider: "DUNEWireReadout"
-    SortingParameters: { tool_type: "${SORTER}" }
+    ChannelsPerOpDet: 1
   }
   GeometryConfigurationWriter: {}
+  # The TPC/cryostat sorter (which fixes channel ordering) is on the Geometry
+  # service, NOT on WireReadout.
   Geometry: {
     GDML: "${GDML_BASE}"
     Name: "${DETNAME}"
     SurfaceY: 0
-    DisableWiresInG4: true
+    SortingParameters: { tool_type: "${SORTER}" }
   }
 }
 
