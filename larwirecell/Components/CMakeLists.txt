@@ -17,6 +17,9 @@ cet_make_library(LIBRARY_NAME WireCellLarsoft
   RawFrameSource.cxx
   SimDepoSetSource.cxx
   SimDepoSource.cxx
+  WireSchemaBuilder.cxx
+  WireSchemaService.cxx
+  WireSchemaSource.cxx
   # vvv obsolete vvv
   DepoSetSimChannelSink.cxx
   SimChannelSink.cxx
@@ -45,6 +48,10 @@ cet_make_library(LIBRARY_NAME WireCellLarsoft
   lardataobj::RawData
   art::Framework_Core
   art::Framework_Principal
+  art::Framework_Services_Registry
+  larcorealg::Geometry
+  fhiclcpp::fhiclcpp
+  messagefacility::MF_MessageLogger
   WireCell::Gen
   ROOT::Core
 )
