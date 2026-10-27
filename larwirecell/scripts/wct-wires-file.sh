@@ -12,12 +12,13 @@
 #       Produces: OUTDIR/<canonical>.{json.bz2, fcl, sidecar.json}
 #       where <canonical> = <era><technology>-<variant>.
 #
-#   summary [--with-anodes] WIRES [-o OUT.json]
-#       Summarize an existing wires file: a sha256 of the uncompressed JSON,
-#       totals, and per-wire-plane statistics (counts, bounding boxes, wire
-#       angle / pitch mean+stdev, dir.X, mean pitch vector, wire-0 & central
-#       centers).  The per-anode "anodes" array is EXCLUDED by default; pass
-#       --with-anodes to include it.  Writes to stdout unless -o is given.
+#   summary [--with-anodes] [--with-planes] WIRES [-o OUT.json]
+#       Summarize an existing wires file: a sha256 of the uncompressed JSON and
+#       the totals.  The per-anode "anodes" array and the per-wire-plane "planes"
+#       array (counts, bounding boxes, wire angle / pitch mean+stdev, dir.X, mean
+#       pitch vector, wire-0 & central centers) are BOTH EXCLUDED by default; pass
+#       --with-anodes and/or --with-planes to include them.  Writes to stdout
+#       unless -o is given.
 #
 # generate SPEC.json schema (all keys required unless noted):
 #   {
@@ -54,7 +55,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SUMMARY_PY="$HERE/wires-summary.py"
 
-usage() { sed -n '2,62p' "$0"; exit "${1:-0}"; }
+usage() { sed -n '2,52p' "$0"; exit "${1:-0}"; }
 
 #============================================================================
 cmd_generate() {
@@ -218,10 +219,11 @@ PY
 
 #============================================================================
 cmd_summary() {
-  local with_anodes="" out="/dev/stdout" wires=""
+  local opts="" out="/dev/stdout" wires=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --with-anodes) with_anodes="--with-anodes"; shift;;
+      --with-anodes) opts="$opts --with-anodes"; shift;;
+      --with-planes) opts="$opts --with-planes"; shift;;
       -o|--output)   out="$2"; shift 2;;
       -h|--help)     usage 0;;
       -*) echo "unknown option: $1" >&2; usage 1;;
@@ -231,7 +233,7 @@ cmd_summary() {
   [ -n "$wires" ] || { echo "ERROR: summary requires a wires file" >&2; usage 1; }
   [ -f "$wires" ] || { echo "ERROR: wires file not found: $wires" >&2; exit 1; }
   # shellcheck disable=SC2086
-  python3 "$SUMMARY_PY" $with_anodes "$wires" -o "$out"
+  python3 "$SUMMARY_PY" $opts "$wires" -o "$out"
 }
 
 #============================================================================

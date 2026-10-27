@@ -6,8 +6,8 @@ consistent-by-construction with the channel map) and to summarize/validate them.
 | script | what it does |
 |--------|--------------|
 | `wct-wires-file.sh generate` | from a JSON spec → generate FHiCL → run `lar` (WireSchemaFileWriter) → `<era><tech>-<variant>.json.bz2` + a `.sidecar.json` provenance file (input spec + FHiCL; **no** summary) |
-| `wct-wires-file.sh summary`  | summarize an existing wires file (wraps `wires-summary.py`); per-anode array excluded unless `--with-anodes` |
-| `wires-summary.py`  | summarize a wires file: uncompressed-JSON sha256; totals; per-plane wire/channel counts, endpoint bounding boxes, mean/stdev of transverse wire angle, pitch distance, and `dir·X`, mean pitch vector, wire-zero and central-wire centers; `--with-anodes` adds the per-anode array |
+| `wct-wires-file.sh summary`  | summarize an existing wires file (wraps `wires-summary.py`); the per-anode and per-plane arrays are excluded unless `--with-anodes` / `--with-planes` |
+| `wires-summary.py`  | summarize a wires file: uncompressed-JSON sha256 + totals by default; `--with-planes` adds the per-plane array (wire/channel counts, endpoint bounding boxes, mean/stdev of transverse wire angle, pitch distance, and `dir·X`, mean pitch vector, wire-zero and central-wire centers); `--with-anodes` adds the per-anode array |
 | `wires-compare.py`  | compare two wires files (or summaries): exact hash match else structural diff within tolerance; exit 0 = agree |
 
 ## Generate a wires file
@@ -48,8 +48,11 @@ live in **dunecore**.  `lar` needs dunecore's plugins on
 ## Summarize a wires file
 
 ```bash
+# default: sha256 + totals only
 ./wct-wires-file.sh summary out/<canonical>.json.bz2 -o out/<canonical>.summary.json
-./wct-wires-file.sh summary --with-anodes out/<canonical>.json.bz2   # include per-anode array
+# add the per-plane and/or per-anode arrays:
+./wct-wires-file.sh summary --with-planes out/<canonical>.json.bz2
+./wct-wires-file.sh summary --with-anodes --with-planes out/<canonical>.json.bz2
 ```
 
 ## Validate / reproduce an existing file (no dunecore needed)

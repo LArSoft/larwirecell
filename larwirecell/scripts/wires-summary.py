@@ -209,12 +209,16 @@ def main(argv=None):
                     help="output summary JSON (default: stdout)")
     ap.add_argument("--with-anodes", action="store_true",
                     help="include the per-anode 'anodes' array (excluded by default)")
+    ap.add_argument("--with-planes", action="store_true",
+                    help="include the per-plane 'planes' array (excluded by default)")
     args = ap.parse_args(argv)
 
     store, raw = load_store(args.wires)
     summary = summarize(store)
     if not args.with_anodes:
         summary.pop("anodes", None)
+    if not args.with_planes:
+        summary.pop("planes", None)
     summary["source_file"] = args.wires
     summary["uncompressed_sha256"] = hashlib.sha256(raw).hexdigest()
     summary["uncompressed_bytes"] = len(raw)
