@@ -33,7 +33,7 @@
 #     "pdmap_tool":   "PDVDPDMapAlg",       # optional: required by CRP/ColdBox maps
 #     "pdmap_file":   "PDVD_PDS_Mapping_v09162025.json", # optional PD map file
 #     "grouping":     "pair-tpc",           # optional: tpcset|per-tpc|pair-tpc (def tpcset)
-#     "correction":   4                     # optional: 1..4 (def 4 = pitch)
+#     "correction":   4                     # optional: 1..4 (def 4 = pitch; ignored until WCT has correct())
 #   }
 # A relative "gdml"/"pdmap_file" is resolved against CWD then $GDML_PATH /
 # $PDMAP_PATH.  If "gdml_sha1sum" is given, the resolved GDML's sha1 must match.
@@ -41,7 +41,7 @@
 # Environment (override as needed; defaults assume the xerosere "wcls" env):
 #   XERO           repo root (default: autodetected from this script's location)
 #   WCLS_VIEW      spack view prefix       (default: $XERO/extern/envs/wcls/view)
-#   WCT_INSTALL    WCT install w/ correct()(default: $XERO/installs/envs/wcls)
+#   WCT_INSTALL    WCT install             (default: $XERO/installs/envs/wcls)
 #   LWC_BUILD      larwirecell build dir   (default: $XERO/builds/envs/wcls/larwirecell)
 #   GDML_PATH      ':'-sep dirs to find a relative gdml
 #   PDMAP_PATH     ':'-sep dirs to find a relative pdmap_file
@@ -184,7 +184,7 @@ physics: {
 EOF
 
   # --- runtime environment -------------------------------------------------
-  # Order matters: our WCT install (with correct()) and our larwirecell build
+  # Order matters: our WCT install and our larwirecell build
   # must precede the view's stock WCT / larwirecell.
   export LD_LIBRARY_PATH="$WCT_INSTALL/lib:$LWC_BUILD/lib:${WCLS_VIEW}/lib:${LD_LIBRARY_PATH:-}"
   export CET_PLUGIN_PATH="$LWC_BUILD/lib:$WCT_INSTALL/lib:${WCLS_VIEW}/lib:${CET_PLUGIN_PATH:-}"

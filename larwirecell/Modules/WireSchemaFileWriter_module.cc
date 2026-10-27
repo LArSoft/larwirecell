@@ -19,6 +19,9 @@
  *    }
  *  The LArSoft channel map + sorter are whatever services_dune.fcl selects for
  *  the geometry in use; this module simply reads the resulting service.
+ *
+ *  FIXME: until WCT releases WireSchema::correct() the file is written RAW
+ *  (uncorrected) and correction/validate are ignored.  WCT corrects on load.
  */
 
 #include "larwirecell/Components/WireSchemaBuilder.h"

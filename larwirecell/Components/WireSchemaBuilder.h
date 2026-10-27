@@ -24,6 +24,10 @@
  *  See util/docs/wire-schema.org for the "legal" conventions the output obeys
  *  (ordering, wire/pitch direction, segments).  Compliance is achieved by
  *  running WireCell::WireSchema::correct() and asserted by validate().
+ *
+ *  FIXME: correct() is not yet in a WCT release so it and validate() are
+ *  currently disabled (#if 0) in the builder and the Store is returned RAW.
+ *  WCT's WireSchema::load() applies the corrections when reading a file.
  */
 #ifndef LARWIRECELL_COMPONENTS_WIRESCHEMABUILDER_H
 #define LARWIRECELL_COMPONENTS_WIRESCHEMABUILDER_H

@@ -147,6 +147,13 @@ wcls::build_wire_schema(const geo::GeometryCore& geom,
 
     // Make the raw store compliant with the wire-schema conventions "by
     // construction" using the exact same fixers wcwires applies on load.
+    //
+    // FIXME: WireSchema::correct() is not yet in a WCT release (> 0.37.1).
+    // Until it is, the store is returned uncorrected and so is not validated
+    // (a raw store generally fails validate()).  This is benign for files
+    // written by WireSchemaFileWriter as WireSchema::load() applies the same
+    // corrections when WCT reads them.  policy.correction/validate are ignored.
+#if 0
     WireCell::WireSchema::correct(*db, policy.correction);
 
     Store store(db);
@@ -156,6 +163,10 @@ wcls::build_wire_schema(const geo::GeometryCore& geom,
         WireCell::WireSchema::validate(store, policy.repsilon, false);
         log->debug("wire-schema: validated OK");
     }
+#else
+    Store store(db);
+    log->warn("wire-schema: WireSchema::correct() unavailable, store is uncorrected and unvalidated");
+#endif
 
     return store;
 }

@@ -60,11 +60,13 @@ live in **dunecore**.  `lar` needs dunecore's plugins on
 The reference side of the reproduction test uses only `wcwires`:
 
 ```bash
-# existing file -> same WCT pitch corrections the writer applies internally
+# existing file -> WCT pitch corrections
 wcwires -c 4 -o ref.json.bz2  existing-wires.json.bz2
 
-# once generated via `wct-wires-file.sh generate`:
-wires-compare.py  out/<canonical>.json.bz2  ref.json.bz2
+# once generated via `wct-wires-file.sh generate`, apply the same corrections
+# (the writer currently emits RAW files until WCT releases WireSchema::correct())
+wcwires -c 4 -o gen.json.bz2  out/<canonical>.json.bz2
+wires-compare.py  gen.json.bz2  ref.json.bz2
 ```
 
 `IDENTICAL` = byte-identical uncompressed JSON; `EQUIVALENT` = within numeric
