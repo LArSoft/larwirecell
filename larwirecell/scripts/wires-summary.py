@@ -2,7 +2,7 @@
 """Summarize a Wire-Cell Toolkit "wires file" (.json / .json.bz2 / .json.gz).
 
 Produces a JSON summary used both for provenance side-cars (see
-generate-wires.sh) and for comparing two wires files (see wires-compare.py).
+wct-wires-file.sh) and for comparing two wires files (see wires-compare.py).
 
 The summary contains, as specified for the wcls wires-consistency tooling:
 
@@ -207,10 +207,14 @@ def main(argv=None):
     ap.add_argument("wires", help="wires file (.json/.json.bz2/.json.gz)")
     ap.add_argument("-o", "--output", default="/dev/stdout",
                     help="output summary JSON (default: stdout)")
+    ap.add_argument("--with-anodes", action="store_true",
+                    help="include the per-anode 'anodes' array (excluded by default)")
     args = ap.parse_args(argv)
 
     store, raw = load_store(args.wires)
     summary = summarize(store)
+    if not args.with_anodes:
+        summary.pop("anodes", None)
     summary["source_file"] = args.wires
     summary["uncompressed_sha256"] = hashlib.sha256(raw).hexdigest()
     summary["uncompressed_bytes"] = len(raw)
