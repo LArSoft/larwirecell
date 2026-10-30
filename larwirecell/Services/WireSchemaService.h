@@ -13,11 +13,18 @@
  *  The resulting geometry is consistent-by-construction with whatever channel
  *  map the job loaded -- no wires file, no file/map mismatch possible.
  *
+ *  It also provides the drift-axis geometry of each anode face (collection
+ *  plane, cathode, drift direction), which the WCT component
+ *  wcls::DriftPlanesSource turns into the "anode", "response" and "cathode"
+ *  planes of AnodePlane and Drifter.
+ *
  *  FHiCL (services block):
  *    WireSchemaService: {
- *      grouping:   "tpcset"    # tpcset (default) | per-tpc | pair-tpc
- *      correction: 4           # 1=load 2=order 3=direction 4=pitch
- *      validate:   true
+ *      grouping:    "tpcset"   # tpcset (default) | per-tpc | pair-tpc
+ *      correction:  4          # 1=load 2=order 3=direction 4=pitch
+ *      validate:    true
+ *      anode_offset: 0.0       # cm from the collection plane, positive
+ *                              # against the drift (into the drift volume)
  *    }
  */
 #ifndef LARWIRECELL_SERVICES_WIRESCHEMASERVICE_H
@@ -26,8 +33,11 @@
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "fhiclcpp/ParameterSet.h"
 
+#include "larwirecell/Components/WireSchemaBuilder.h"
+
 #include "WireCellUtil/WireSchema.h"
 
+#include <mutex>
 #include <string>
 
 namespace art {
@@ -45,19 +55,28 @@ namespace wcls {
         /// onward), which is the case when WCT configures its AnodePlane.
         const WireCell::WireSchema::Store& wire_schema_store() const;
 
+        /// Return the (lazily built) drift geometry of the faces of the store,
+        /// with the anode bound displaced from the collection plane by the
+        /// configured anode_offset.
+        const DriftFaces& drift_faces() const;
+
       private:
         void build() const;
 
         std::string fGrouping;
         int fCorrection;
         bool fValidate;
+        double fAnodeOffset;  // WCT units
 
         mutable WireCell::WireSchema::Store m_store;
-        mutable bool m_built{false};
+        mutable DriftFaces m_drift_faces;
+        mutable std::once_flag m_built;
     };
 
 }  // namespace wcls
 
-DECLARE_ART_SERVICE(wcls::WireSchemaService, LEGACY)
+// SHARED so a WCT-only job can run art (and so TbbFlow) with many threads; the
+// one lazy build is guarded by std::call_once.
+DECLARE_ART_SERVICE(wcls::WireSchemaService, SHARED)
 
 #endif

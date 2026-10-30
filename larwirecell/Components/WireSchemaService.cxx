@@ -11,6 +11,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include "WireCellUtil/Units.h"
 #include "WireCellUtil/WireSchema.h"
 
 wcls::WireSchemaService::WireSchemaService(fhicl::ParameterSet const& pset,
@@ -19,13 +20,12 @@ wcls::WireSchemaService::WireSchemaService(fhicl::ParameterSet const& pset,
     , fCorrection(pset.get<int>("correction",
                       static_cast<int>(WireCell::WireSchema::Correction::pitch)))
     , fValidate(pset.get<bool>("validate", true))
+    , fAnodeOffset(pset.get<double>("anode_offset", 0.0) * WireCell::units::cm)
 {
 }
 
 void wcls::WireSchemaService::build() const
 {
-    if (m_built) return;
-
     auto const* geom = art::ServiceHandle<geo::Geometry const>().get();
     auto const& wires = art::ServiceHandle<geo::WireReadout const>()->Get();
 
@@ -39,7 +39,13 @@ void wcls::WireSchemaService::build() const
         << "' (" << wires.Nchannels() << " channels), grouping=" << fGrouping;
 
     m_store = build_wire_schema(*geom, wires, policy);
-    m_built = true;
+
+    m_drift_faces = build_drift_faces(*geom, wires, m_store, policy.grouping);
+    for (auto& [anode, faces] : m_drift_faces) {
+        for (auto& fd : faces) {
+            fd.anode = fd.collection - fd.drift_sign * fAnodeOffset;
+        }
+    }
 
     mf::LogInfo("WireSchemaService")
         << "built " << m_store.anodes().size() << " anodes, "
@@ -49,6 +55,12 @@ void wcls::WireSchemaService::build() const
 
 const WireCell::WireSchema::Store& wcls::WireSchemaService::wire_schema_store() const
 {
-    build();
+    std::call_once(m_built, [this] { build(); });
     return m_store;
+}
+
+const wcls::DriftFaces& wcls::WireSchemaService::drift_faces() const
+{
+    std::call_once(m_built, [this] { build(); });
+    return m_drift_faces;
 }

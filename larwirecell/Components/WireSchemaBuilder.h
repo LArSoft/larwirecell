@@ -24,17 +24,15 @@
  *  See util/docs/wire-schema.org for the "legal" conventions the output obeys
  *  (ordering, wire/pitch direction, segments).  Compliance is achieved by
  *  running WireCell::WireSchema::correct() and asserted by validate().
- *
- *  FIXME: correct() is not yet in a WCT release so it and validate() are
- *  currently disabled (#if 0) in the builder and the Store is returned RAW.
- *  WCT's WireSchema::load() applies the corrections when reading a file.
  */
 #ifndef LARWIRECELL_COMPONENTS_WIRESCHEMABUILDER_H
 #define LARWIRECELL_COMPONENTS_WIRESCHEMABUILDER_H
 
 #include "WireCellUtil/WireSchema.h"
 
+#include <map>
 #include <string>
+#include <vector>
 
 namespace geo {
     class GeometryCore;
@@ -94,6 +92,26 @@ namespace wcls {
     build_wire_schema(const geo::GeometryCore& geom,
                       const geo::WireReadoutGeom& wires,
                       const GroupingPolicy& policy = {});
+
+    /// The drift-axis geometry of one WCT anode face, from its LArSoft TPC.
+    /// Locations are X coordinates in WCT units.
+    struct FaceDrift {
+        double collection{0};  ///< center of the collection plane
+        double anode{0};       ///< anode bound, built coplanar with collection
+        double cathode{0};     ///< center of the active volume face opposite the planes
+        int drift_sign{0};     ///< +1 (-1) if electrons drift toward +X (-X)
+    };
+
+    /// Anode ident -> one FaceDrift per face, in the face order of the Store.
+    using DriftFaces = std::map<int, std::vector<FaceDrift>>;
+
+    /// Return the drift geometry of the faces of a store made by
+    /// build_wire_schema() from the same geometry and grouping.  Throws
+    /// WireCell::ValueError if a TPC does not drift along X.
+    DriftFaces build_drift_faces(const geo::GeometryCore& geom,
+                                 const geo::WireReadoutGeom& wires,
+                                 const WireCell::WireSchema::Store& store,
+                                 Grouping grouping);
 
 }  // namespace wcls
 

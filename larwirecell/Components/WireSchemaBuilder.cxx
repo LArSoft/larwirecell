@@ -3,6 +3,8 @@
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "larcorealg/Geometry/WireReadoutGeom.h"
 #include "larcorealg/Geometry/WireGeo.h"
+#include "larcorealg/Geometry/PlaneGeo.h"
+#include "larcorealg/Geometry/TPCGeo.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
 #include "larcoreobj/SimpleTypesAndConstants/readout_types.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
@@ -11,6 +13,7 @@
 #include "WireCellUtil/Logging.h"
 #include "WireCellUtil/Exceptions.h"
 
+#include <cmath>
 #include <map>
 
 using namespace WireCell;
@@ -36,8 +39,12 @@ namespace {
         std::map<readout::TPCsetID, int> tpcset_anode;
         std::map<geo::TPCID, int> tpc_face;
 
-        // kPerTPC / kPairTPC: TPCID -> running global TPC index
+        // kPerTPC: TPCID -> running global TPC index (TPC-set traversal order)
         std::map<geo::TPCID, int> tpc_index;
+
+        // kPairTPC: TPCID -> global geometric TPC number (cryostat offset +
+        // TPCID::TPC), as used by the legacy wrapped two-face files.
+        std::map<geo::TPCID, int> tpc_number;
 
         Grouper(const geo::GeometryCore& geom,
                 const geo::WireReadoutGeom& wires,
@@ -48,8 +55,10 @@ namespace {
             // reproducible running idents.
             int anode_running = 0;
             int tpc_running = 0;
+            int tpc_offset = 0;
             for (unsigned int c = 0; c < geom.Ncryostats(); ++c) {
                 readout::CryostatID cid(c);
+                const unsigned int ntpcs = geom.NTPC(geo::CryostatID(c));
                 const unsigned int nsets = wires.NTPCsets(cid);
                 for (unsigned int s = 0; s < nsets; ++s) {
                     readout::TPCsetID sid(cid, s);
@@ -60,8 +69,10 @@ namespace {
                     for (const auto& tid : tpcs) {
                         tpc_face[tid] = face++;
                         tpc_index[tid] = tpc_running++;
+                        tpc_number[tid] = tpc_offset + static_cast<int>(tid.TPC);
                     }
                 }
+                tpc_offset += ntpcs;
             }
         }
 
@@ -69,16 +80,23 @@ namespace {
         std::pair<int, int> anode_face(const geo::WireReadoutGeom& wires,
                                        const geo::WireID& wid) const
         {
-            const geo::TPCID tid = wid.asTPCID();
+            return anode_face(wires, wid.asTPCID());
+        }
+
+        // Return (anode_ident, face_ident) for a TPC.
+        std::pair<int, int> anode_face(const geo::WireReadoutGeom& wires,
+                                       const geo::TPCID& tid) const
+        {
             if (grouping == wcls::Grouping::kTPCset) {
                 const readout::TPCsetID sid = wires.TPCtoTPCset(tid);
                 return {tpcset_anode.at(sid), tpc_face.at(tid)};
             }
-            const int gtpc = tpc_index.at(tid);
             if (grouping == wcls::Grouping::kPerTPC) {
-                return {gtpc, 0};
+                return {tpc_index.at(tid), 0};
             }
-            // kPairTPC: legacy wrapped two-face convention.
+            // kPairTPC: legacy wrapped two-face convention, keyed on the
+            // geometric TPC number so anode idents match the legacy files.
+            const int gtpc = tpc_number.at(tid);
             return {gtpc / 2, (1 + gtpc) % 2};
         }
     };
@@ -147,13 +165,6 @@ wcls::build_wire_schema(const geo::GeometryCore& geom,
 
     // Make the raw store compliant with the wire-schema conventions "by
     // construction" using the exact same fixers wcwires applies on load.
-    //
-    // FIXME: WireSchema::correct() is not yet in a WCT release (> 0.37.1).
-    // Until it is, the store is returned uncorrected and so is not validated
-    // (a raw store generally fails validate()).  This is benign for files
-    // written by WireSchemaFileWriter as WireSchema::load() applies the same
-    // corrections when WCT reads them.  policy.correction/validate are ignored.
-#if 0
     WireCell::WireSchema::correct(*db, policy.correction);
 
     Store store(db);
@@ -163,10 +174,53 @@ wcls::build_wire_schema(const geo::GeometryCore& geom,
         WireCell::WireSchema::validate(store, policy.repsilon, false);
         log->debug("wire-schema: validated OK");
     }
-#else
-    Store store(db);
-    log->warn("wire-schema: WireSchema::correct() unavailable, store is uncorrected and unvalidated");
-#endif
 
     return store;
+}
+
+wcls::DriftFaces
+wcls::build_drift_faces(const geo::GeometryCore& geom,
+                        const geo::WireReadoutGeom& wires,
+                        const WireCell::WireSchema::Store& store,
+                        wcls::Grouping grouping)
+{
+    Grouper grouper(geom, wires, grouping);
+
+    // (anode ident, face ident) -> drift geometry of its TPC.
+    std::map<std::pair<int, int>, FaceDrift> by_ident;
+    for (const auto& [tid, face_in_set] : grouper.tpc_face) {
+        const geo::TPCGeo& tpc = geom.TPC(tid);
+        const auto ddir = tpc.DriftDir();
+        if (std::abs(ddir.X()) < 0.999) {
+            THROW(ValueError() << errmsg{"TPC " + tid.toString()
+                                         + " does not drift along X"});
+        }
+
+        // The collection plane, else the last plane.
+        const unsigned int nplanes = wires.Nplanes(tid);
+        geo::PlaneID coll(tid, nplanes - 1);
+        for (unsigned int p = 0; p < nplanes; ++p) {
+            geo::PlaneID pid(tid, p);
+            if (wires.SignalType(pid) == geo::kCollection) {
+                coll = pid;
+                break;
+            }
+        }
+
+        FaceDrift fd;
+        fd.collection = wires.Plane(coll).GetCenter().X() * units::cm;
+        fd.anode = fd.collection;
+        fd.cathode = tpc.GetCathodeCenter().X() * units::cm;
+        fd.drift_sign = ddir.X() > 0 ? +1 : -1;
+        by_ident[grouper.anode_face(wires, tid)] = fd;
+    }
+
+    DriftFaces ret;
+    for (const auto& anode : store.anodes()) {
+        auto& faces = ret[anode.ident];
+        for (const auto& face : store.faces(anode)) {
+            faces.push_back(by_ident.at({anode.ident, face.ident}));
+        }
+    }
+    return ret;
 }
