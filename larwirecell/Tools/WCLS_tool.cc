@@ -4,7 +4,10 @@
 #include "larwirecell/Interfaces/IArtEventVisitor.h"
 #include "larwirecell/Interfaces/MainTool.h"
 
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/ParameterSetWalker.h"
+#include "fhiclcpp/coding.h"
 #include "fhiclcpp/types/Comment.h"
 #include "fhiclcpp/types/OptionalDelegatedParameter.h"
 #include "fhiclcpp/types/OptionalSequence.h"
@@ -17,7 +20,120 @@
 
 #include "WireCellUtil/NamedFactory.h"
 
+#include <cstdio>
+#include <map>
 #include <string>
+#include <vector>
+
+namespace {
+
+  // Render the non-atom (sequence or table) top-level values of a
+  // ParameterSet as JSON text, which is valid Jsonnet code.  Atoms
+  // inside them become JSON strings, numbers, booleans or null.
+  class JsonnetCoder : public fhicl::ParameterSetWalker {
+  public:
+    // Top-level key to JSON text.
+    std::map<std::string, std::string> codes;
+
+  private:
+    struct level_t {
+      bool is_table;
+      bool first;
+    };
+    std::vector<level_t> m_stack;
+    std::string m_key, m_code;
+
+    void begin_value(key_t const& key)
+    {
+      if (m_stack.empty()) {
+        m_key = key;
+        m_code.clear();
+        return;
+      }
+      auto& lvl = m_stack.back();
+      if (!lvl.first) { m_code += ","; }
+      lvl.first = false;
+      if (lvl.is_table) { m_code += quote(key) + ":"; }
+    }
+    void end_value()
+    {
+      if (m_stack.empty()) { codes[m_key] = m_code; }
+    }
+
+    void enter_table(key_t const& key, any_t const&) override
+    {
+      begin_value(key);
+      m_code += "{";
+      m_stack.push_back({true, true});
+    }
+    void exit_table(key_t const&, any_t const&) override
+    {
+      m_stack.pop_back();
+      m_code += "}";
+      end_value();
+    }
+    void enter_sequence(key_t const& key, any_t const&) override
+    {
+      begin_value(key);
+      m_code += "[";
+      m_stack.push_back({false, true});
+    }
+    void exit_sequence(key_t const&, any_t const&) override
+    {
+      m_stack.pop_back();
+      m_code += "]";
+      end_value();
+    }
+    void atom(key_t const& key, any_t const& value) override
+    {
+      if (m_stack.empty()) { return; } // top-level atoms are taken as Jsonnet code
+      begin_value(key);
+      m_code += atom_code(key, value);
+    }
+
+    // FHiCL holds atoms in canonical form: strings double-quoted,
+    // numbers normalized (no leading '+', hex/octal decoded).
+    static std::string atom_code(key_t const& key, any_t const& value)
+    {
+      if (fhicl::detail::is_nil(value)) { return "null"; }
+      auto const& text = std::any_cast<std::string const&>(value);
+      if (!text.empty() && text[0] == '"') {
+        std::string str;
+        fhicl::detail::decode(value, str);
+        return quote(str);
+      }
+      if (text.find("infinity") != std::string::npos || (!text.empty() && text[0] == '(')) {
+        throw cet::exception("WireCellLArSoft")
+          << "structs value \"" << key << "\" = " << text << " has no Jsonnet form\n";
+      }
+      return text; // number, true or false
+    }
+
+    static std::string quote(std::string const& str)
+    {
+      std::string ret = "\"";
+      for (unsigned char c : str) {
+        switch (c) {
+        case '"': ret += "\\\""; break;
+        case '\\': ret += "\\\\"; break;
+        case '\n': ret += "\\n"; break;
+        case '\t': ret += "\\t"; break;
+        case '\r': ret += "\\r"; break;
+        default:
+          if (c < 0x20) {
+            char buf[8];
+            snprintf(buf, sizeof buf, "\\u%04x", c);
+            ret += buf;
+          }
+          else {
+            ret += c;
+          }
+        }
+      }
+      return ret + "\"";
+    }
+  };
+}
 
 namespace wcls {
 
@@ -58,7 +174,8 @@ namespace wcls {
     generic_pset_t structs{
       fhicl::Name("structs"),
       fhicl::Comment(
-        "Optional table giving external Jsonnet code to inject into WCT configuration.")};
+        "Optional table giving external Jsonnet code to inject into WCT configuration.\n"
+        "A string value is Jsonnet code; a sequence or table value is converted to JSON.")};
 
     // These are items needed by the tool
     optional_string_list_t inputers{
@@ -170,8 +287,13 @@ wcls::WCLS::WCLS(wcls::WCLS::Parameters const& params) : m_wcmain()
   {
     fhicl::ParameterSet wcps;
     if (wclscfg.structs.get_if_present(wcps)) {
+      // An atom value is taken as Jsonnet code text.  A sequence or
+      // table value is converted to the equivalent JSON.
+      JsonnetCoder coder;
+      wcps.walk(coder);
       for (auto key : wcps.get_names()) {
-        auto value = wcps.get<std::string>(key);
+        auto it = coder.codes.find(key);
+        auto value = it == coder.codes.end() ? wcps.get<std::string>(key) : it->second;
         m_wcmain.add_code(key, value);
       }
     }
