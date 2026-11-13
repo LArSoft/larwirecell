@@ -87,7 +87,7 @@
 #>  define_pythonpath
 ####################################
 parent		larwirecell
-defaultqual	e26
+defaultqual	e28
 ####################################
 
 ####################################
@@ -245,9 +245,9 @@ defaultqual	e26
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larevt		  v10_00_26
-larsim      v10_24_02
-wirecell	  v0_37_1
+larevt		  v11_00_00
+larsim      v11_00_00
+wirecell	  v0_37_1a
 cetmodules	v3_27_04	-	only_for_build
 end_product_list
 ####################################
@@ -304,10 +304,6 @@ end_product_list
 #
 ####################################
 qualifier	larevt		larsim      wirecell	notes
-c14:debug	c14:debug	c14:debug   c14:debug
-c14:prof	c14:prof	c14:prof    c14:prof
-e26:debug	e26:debug	e26:debug   e26:debug
-e26:prof	e26:prof	e26:prof    e26:prof
 e28:debug	e28:debug	e28:debug   e28:debug
 e28:prof	e28:prof	e28:prof    e28:prof
 end_qualifier_list
