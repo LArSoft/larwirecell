@@ -25,6 +25,8 @@
  *      validate:    true
  *      anode_offset: 0.0       # cm from the collection plane, positive
  *                              # against the drift (into the drift volume)
+ *      min_drift_fraction: 0.1 # a face with a shorter drift than this
+ *                              # fraction of the longest is insensitive
  *    }
  */
 #ifndef LARWIRECELL_SERVICES_WIRESCHEMASERVICE_H
@@ -67,6 +69,7 @@ namespace wcls {
         int fCorrection;
         bool fValidate;
         double fAnodeOffset;  // WCT units
+        double fMinDriftFraction;
 
         mutable WireCell::WireSchema::Store m_store;
         mutable DriftPlanes m_drift_planes;

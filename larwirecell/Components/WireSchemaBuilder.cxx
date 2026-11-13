@@ -13,6 +13,7 @@
 #include "WireCellUtil/Logging.h"
 #include "WireCellUtil/Exceptions.h"
 
+#include <algorithm>
 #include <cmath>
 #include <map>
 
@@ -182,7 +183,8 @@ wcls::DriftPlanes
 wcls::build_drift_planes(const geo::GeometryCore& geom,
                         const geo::WireReadoutGeom& wires,
                         const WireCell::WireSchema::Store& store,
-                        wcls::Grouping grouping)
+                        wcls::Grouping grouping,
+                        double min_drift_fraction)
 {
     Grouper grouper(geom, wires, grouping);
 
@@ -213,6 +215,15 @@ wcls::build_drift_planes(const geo::GeometryCore& geom,
         fd.cathode = tpc.GetCathodeCenter().X() * units::cm;
         fd.drift_sign = ddir.X() > 0 ? +1 : -1;
         by_ident[grouper.anode_face(wires, tid)] = fd;
+    }
+
+    // Faces without a real drift volume are insensitive.
+    double longest = 0;
+    for (const auto& [id, fd] : by_ident) {
+        longest = std::max(longest, fd.drift_sign * (fd.collection - fd.cathode));
+    }
+    for (auto& [id, fd] : by_ident) {
+        fd.sensitive = fd.drift_sign * (fd.collection - fd.cathode) >= min_drift_fraction * longest;
     }
 
     DriftPlanes ret;

@@ -21,6 +21,7 @@ wcls::WireSchemaService::WireSchemaService(fhicl::ParameterSet const& pset,
                       static_cast<int>(WireCell::WireSchema::Correction::pitch)))
     , fValidate(pset.get<bool>("validate", true))
     , fAnodeOffset(pset.get<double>("anode_offset", 0.0) * WireCell::units::cm)
+    , fMinDriftFraction(pset.get<double>("min_drift_fraction", 0.1))
 {
 }
 
@@ -40,7 +41,7 @@ void wcls::WireSchemaService::build() const
 
     m_store = build_wire_schema(*geom, wires, policy);
 
-    m_drift_planes = build_drift_planes(*geom, wires, m_store, policy.grouping);
+    m_drift_planes = build_drift_planes(*geom, wires, m_store, policy.grouping, fMinDriftFraction);
     for (auto& [anode, faces] : m_drift_planes) {
         for (auto& fd : faces) {
             fd.anode = fd.collection - fd.drift_sign * fAnodeOffset;

@@ -45,6 +45,12 @@ void wcls::DriftPlanesSource::configure(const WireCell::Configuration& cfg)
     for (const auto& [anode, faces] : dfs) {
         Configuration jfaces = Json::arrayValue;
         for (const auto& fd : faces) {
+            if (!fd.sensitive) {
+                // No drift volume: a null face (AnodePlane's insensitive
+                // face) and no xregion.
+                jfaces.append(Json::nullValue);
+                continue;
+            }
             // "Against the drift" is from the planes toward the cathode.
             const double response = fd.collection - fd.drift_sign * response_distance;
             if (fd.drift_sign * (fd.anode - response) <= 0) {

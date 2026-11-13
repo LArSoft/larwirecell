@@ -100,18 +100,25 @@ namespace wcls {
         double anode{0};       ///< anode bound, built coplanar with collection
         double cathode{0};     ///< center of the active volume face opposite the planes
         int drift_sign{0};     ///< +1 (-1) if electrons drift toward +X (-X)
+        /// False for a face without a real drift volume (see
+        /// build_drift_planes): WCT gets a null face, no sensitive volume.
+        bool sensitive{true};
     };
 
     /// Anode ident -> one DriftPlane per face, in the face order of the Store.
     using DriftPlanes = std::map<int, std::vector<DriftPlane>>;
 
     /// Return the drift geometry of the faces of a store made by
-    /// build_wire_schema() from the same geometry and grouping.  Throws
+    /// build_wire_schema() from the same geometry and grouping.  A face
+    /// whose drift length (collection plane to cathode) is less than
+    /// min_drift_fraction of the longest one is insensitive (eg the ~2.5 cm
+    /// between a ProtoDUNE-HD APA and the cryostat wall).  Throws
     /// WireCell::ValueError if a TPC does not drift along X.
     DriftPlanes build_drift_planes(const geo::GeometryCore& geom,
                                  const geo::WireReadoutGeom& wires,
                                  const WireCell::WireSchema::Store& store,
-                                 Grouping grouping);
+                                 Grouping grouping,
+                                 double min_drift_fraction = 0.1);
 
 }  // namespace wcls
 
