@@ -40,8 +40,8 @@ void wcls::WireSchemaService::build() const
 
     m_store = build_wire_schema(*geom, wires, policy);
 
-    m_drift_faces = build_drift_faces(*geom, wires, m_store, policy.grouping);
-    for (auto& [anode, faces] : m_drift_faces) {
+    m_drift_planes = build_drift_planes(*geom, wires, m_store, policy.grouping);
+    for (auto& [anode, faces] : m_drift_planes) {
         for (auto& fd : faces) {
             fd.anode = fd.collection - fd.drift_sign * fAnodeOffset;
         }
@@ -59,8 +59,8 @@ const WireCell::WireSchema::Store& wcls::WireSchemaService::wire_schema_store() 
     return m_store;
 }
 
-const wcls::DriftFaces& wcls::WireSchemaService::drift_faces() const
+const wcls::DriftPlanes& wcls::WireSchemaService::drift_planes() const
 {
     std::call_once(m_built, [this] { build(); });
-    return m_drift_faces;
+    return m_drift_planes;
 }

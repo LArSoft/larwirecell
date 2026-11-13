@@ -95,20 +95,20 @@ namespace wcls {
 
     /// The drift-axis geometry of one WCT anode face, from its LArSoft TPC.
     /// Locations are X coordinates in WCT units.
-    struct FaceDrift {
+    struct DriftPlane {
         double collection{0};  ///< center of the collection plane
         double anode{0};       ///< anode bound, built coplanar with collection
         double cathode{0};     ///< center of the active volume face opposite the planes
         int drift_sign{0};     ///< +1 (-1) if electrons drift toward +X (-X)
     };
 
-    /// Anode ident -> one FaceDrift per face, in the face order of the Store.
-    using DriftFaces = std::map<int, std::vector<FaceDrift>>;
+    /// Anode ident -> one DriftPlane per face, in the face order of the Store.
+    using DriftPlanes = std::map<int, std::vector<DriftPlane>>;
 
     /// Return the drift geometry of the faces of a store made by
     /// build_wire_schema() from the same geometry and grouping.  Throws
     /// WireCell::ValueError if a TPC does not drift along X.
-    DriftFaces build_drift_faces(const geo::GeometryCore& geom,
+    DriftPlanes build_drift_planes(const geo::GeometryCore& geom,
                                  const geo::WireReadoutGeom& wires,
                                  const WireCell::WireSchema::Store& store,
                                  Grouping grouping);

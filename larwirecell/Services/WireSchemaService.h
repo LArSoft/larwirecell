@@ -58,7 +58,7 @@ namespace wcls {
         /// Return the (lazily built) drift geometry of the faces of the store,
         /// with the anode bound displaced from the collection plane by the
         /// configured anode_offset.
-        const DriftFaces& drift_faces() const;
+        const DriftPlanes& drift_planes() const;
 
       private:
         void build() const;
@@ -69,7 +69,7 @@ namespace wcls {
         double fAnodeOffset;  // WCT units
 
         mutable WireCell::WireSchema::Store m_store;
-        mutable DriftFaces m_drift_faces;
+        mutable DriftPlanes m_drift_planes;
         mutable std::once_flag m_built;
     };
 

@@ -178,8 +178,8 @@ wcls::build_wire_schema(const geo::GeometryCore& geom,
     return store;
 }
 
-wcls::DriftFaces
-wcls::build_drift_faces(const geo::GeometryCore& geom,
+wcls::DriftPlanes
+wcls::build_drift_planes(const geo::GeometryCore& geom,
                         const geo::WireReadoutGeom& wires,
                         const WireCell::WireSchema::Store& store,
                         wcls::Grouping grouping)
@@ -187,7 +187,7 @@ wcls::build_drift_faces(const geo::GeometryCore& geom,
     Grouper grouper(geom, wires, grouping);
 
     // (anode ident, face ident) -> drift geometry of its TPC.
-    std::map<std::pair<int, int>, FaceDrift> by_ident;
+    std::map<std::pair<int, int>, DriftPlane> by_ident;
     for (const auto& [tid, face_in_set] : grouper.tpc_face) {
         const geo::TPCGeo& tpc = geom.TPC(tid);
         const auto ddir = tpc.DriftDir();
@@ -207,7 +207,7 @@ wcls::build_drift_faces(const geo::GeometryCore& geom,
             }
         }
 
-        FaceDrift fd;
+        DriftPlane fd;
         fd.collection = wires.Plane(coll).GetCenter().X() * units::cm;
         fd.anode = fd.collection;
         fd.cathode = tpc.GetCathodeCenter().X() * units::cm;
@@ -215,7 +215,7 @@ wcls::build_drift_faces(const geo::GeometryCore& geom,
         by_ident[grouper.anode_face(wires, tid)] = fd;
     }
 
-    DriftFaces ret;
+    DriftPlanes ret;
     for (const auto& anode : store.anodes()) {
         auto& faces = ret[anode.ident];
         for (const auto& face : store.faces(anode)) {

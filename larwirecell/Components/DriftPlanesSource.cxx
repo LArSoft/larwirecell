@@ -37,11 +37,11 @@ void wcls::DriftPlanesSource::configure(const WireCell::Configuration& cfg)
     const double response_distance = get<double>(cfg, "response_distance", 10 * units::cm);
     const double tolerance = get<double>(cfg, "tolerance", 0.1 * units::mm);
 
-    const auto& dfs = art::ServiceHandle<wcls::WireSchemaService const>()->drift_faces();
+    const auto& dfs = art::ServiceHandle<wcls::WireSchemaService const>()->drift_planes();
 
     m_faces.clear();
     m_xregions = Json::arrayValue;
-    std::vector<FaceDrift> distinct;
+    std::vector<DriftPlane> distinct;
     for (const auto& [anode, faces] : dfs) {
         Configuration jfaces = Json::arrayValue;
         for (const auto& fd : faces) {
