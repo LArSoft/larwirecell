@@ -28,25 +28,24 @@
 
 namespace wcls {
 
-    class DriftPlanesSource : public WireCell::IDriftPlanes,
-                              public WireCell::IConfigurable {
-      public:
-        DriftPlanesSource();
-        virtual ~DriftPlanesSource();
+  class DriftPlanesSource : public WireCell::IDriftPlanes, public WireCell::IConfigurable {
+  public:
+    DriftPlanesSource();
+    virtual ~DriftPlanesSource();
 
-        // IDriftPlanes
-        virtual WireCell::Configuration faces(int anode_ident) const;
-        virtual WireCell::Configuration xregions() const;
+    // IDriftPlanes
+    virtual WireCell::Configuration faces(int anode_ident) const;
+    virtual WireCell::Configuration xregions() const;
 
-        // IConfigurable
-        virtual void configure(const WireCell::Configuration& cfg);
-        virtual WireCell::Configuration default_configuration() const;
+    // IConfigurable
+    virtual void configure(const WireCell::Configuration& cfg);
+    virtual WireCell::Configuration default_configuration() const;
 
-      private:
-        std::map<int, WireCell::Configuration> m_faces;
-        WireCell::Configuration m_xregions;
-    };
+  private:
+    std::map<int, WireCell::Configuration> m_faces;
+    WireCell::Configuration m_xregions;
+  };
 
-}  // namespace wcls
+} // namespace wcls
 
 #endif

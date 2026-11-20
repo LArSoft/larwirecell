@@ -14,54 +14,51 @@
 #include "WireCellUtil/Units.h"
 #include "WireCellUtil/WireSchema.h"
 
-wcls::WireSchemaService::WireSchemaService(fhicl::ParameterSet const& pset,
-                                           art::ActivityRegistry&)
-    : fGrouping(pset.get<std::string>("grouping", "tpcset"))
-    , fCorrection(pset.get<int>("correction",
-                      static_cast<int>(WireCell::WireSchema::Correction::pitch)))
-    , fValidate(pset.get<bool>("validate", true))
-    , fAnodeOffset(pset.get<double>("anode_offset", 0.0) * WireCell::units::cm)
-    , fMinDriftFraction(pset.get<double>("min_drift_fraction", 0.1))
-{
-}
+wcls::WireSchemaService::WireSchemaService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
+  : fGrouping(pset.get<std::string>("grouping", "tpcset"))
+  , fCorrection(
+      pset.get<int>("correction", static_cast<int>(WireCell::WireSchema::Correction::pitch)))
+  , fValidate(pset.get<bool>("validate", true))
+  , fAnodeOffset(pset.get<double>("anode_offset", 0.0) * WireCell::units::cm)
+  , fMinDriftFraction(pset.get<double>("min_drift_fraction", 0.1))
+{}
 
 void wcls::WireSchemaService::build() const
 {
-    auto const* geom = art::ServiceHandle<geo::Geometry const>().get();
-    auto const& wires = art::ServiceHandle<geo::WireReadout const>()->Get();
+  auto const* geom = art::ServiceHandle<geo::Geometry const>().get();
+  auto const& wires = art::ServiceHandle<geo::WireReadout const>()->Get();
 
-    GroupingPolicy policy;
-    policy.grouping = grouping_from_string(fGrouping);
-    policy.correction = static_cast<WireCell::WireSchema::Correction>(fCorrection);
-    policy.validate = fValidate;
+  GroupingPolicy policy;
+  policy.grouping = grouping_from_string(fGrouping);
+  policy.correction = static_cast<WireCell::WireSchema::Correction>(fCorrection);
+  policy.validate = fValidate;
 
-    mf::LogInfo("WireSchemaService")
-        << "building WCT wire schema from detector '" << geom->DetectorName()
-        << "' (" << wires.Nchannels() << " channels), grouping=" << fGrouping;
+  mf::LogInfo("WireSchemaService")
+    << "building WCT wire schema from detector '" << geom->DetectorName() << "' ("
+    << wires.Nchannels() << " channels), grouping=" << fGrouping;
 
-    m_store = build_wire_schema(*geom, wires, policy);
+  m_store = build_wire_schema(*geom, wires, policy);
 
-    m_drift_planes = build_drift_planes(*geom, wires, m_store, policy.grouping, fMinDriftFraction);
-    for (auto& [anode, faces] : m_drift_planes) {
-        for (auto& fd : faces) {
-            fd.anode = fd.collection - fd.drift_sign * fAnodeOffset;
-        }
+  m_drift_planes = build_drift_planes(*geom, wires, m_store, policy.grouping, fMinDriftFraction);
+  for (auto& [anode, faces] : m_drift_planes) {
+    for (auto& fd : faces) {
+      fd.anode = fd.collection - fd.drift_sign * fAnodeOffset;
     }
+  }
 
-    mf::LogInfo("WireSchemaService")
-        << "built " << m_store.anodes().size() << " anodes, "
-        << m_store.faces().size() << " faces, " << m_store.planes().size()
-        << " planes, " << m_store.wires().size() << " wires";
+  mf::LogInfo("WireSchemaService")
+    << "built " << m_store.anodes().size() << " anodes, " << m_store.faces().size() << " faces, "
+    << m_store.planes().size() << " planes, " << m_store.wires().size() << " wires";
 }
 
 const WireCell::WireSchema::Store& wcls::WireSchemaService::wire_schema_store() const
 {
-    std::call_once(m_built, [this] { build(); });
-    return m_store;
+  std::call_once(m_built, [this] { build(); });
+  return m_store;
 }
 
 const wcls::DriftPlanes& wcls::WireSchemaService::drift_planes() const
 {
-    std::call_once(m_built, [this] { build(); });
-    return m_drift_planes;
+  std::call_once(m_built, [this] { build(); });
+  return m_drift_planes;
 }

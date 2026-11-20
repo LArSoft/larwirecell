@@ -43,40 +43,40 @@
 #include <string>
 
 namespace art {
-    class ActivityRegistry;
+  class ActivityRegistry;
 }
 
 namespace wcls {
 
-    class WireSchemaService {
-      public:
-        WireSchemaService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
+  class WireSchemaService {
+  public:
+    WireSchemaService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
 
-        /// Return the (lazily built) wire-schema Store.  Safe to call once the
-        /// geometry/wire-readout art services are available (ie from begin-job
-        /// onward), which is the case when WCT configures its AnodePlane.
-        const WireCell::WireSchema::Store& wire_schema_store() const;
+    /// Return the (lazily built) wire-schema Store.  Safe to call once the
+    /// geometry/wire-readout art services are available (ie from begin-job
+    /// onward), which is the case when WCT configures its AnodePlane.
+    const WireCell::WireSchema::Store& wire_schema_store() const;
 
-        /// Return the (lazily built) drift geometry of the faces of the store,
-        /// with the anode bound displaced from the collection plane by the
-        /// configured anode_offset.
-        const DriftPlanes& drift_planes() const;
+    /// Return the (lazily built) drift geometry of the faces of the store,
+    /// with the anode bound displaced from the collection plane by the
+    /// configured anode_offset.
+    const DriftPlanes& drift_planes() const;
 
-      private:
-        void build() const;
+  private:
+    void build() const;
 
-        std::string fGrouping;
-        int fCorrection;
-        bool fValidate;
-        double fAnodeOffset;  // WCT units
-        double fMinDriftFraction;
+    std::string fGrouping;
+    int fCorrection;
+    bool fValidate;
+    double fAnodeOffset; // WCT units
+    double fMinDriftFraction;
 
-        mutable WireCell::WireSchema::Store m_store;
-        mutable DriftPlanes m_drift_planes;
-        mutable std::once_flag m_built;
-    };
+    mutable WireCell::WireSchema::Store m_store;
+    mutable DriftPlanes m_drift_planes;
+    mutable std::once_flag m_built;
+  };
 
-}  // namespace wcls
+} // namespace wcls
 
 // SHARED so a WCT-only job can run art (and so TbbFlow) with many threads; the
 // one lazy build is guarded by std::call_once.

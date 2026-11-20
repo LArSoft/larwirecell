@@ -41,58 +41,56 @@
 
 namespace wcls {
 
-    class WireSchemaFileWriter : public art::EDAnalyzer {
-      public:
-        explicit WireSchemaFileWriter(fhicl::ParameterSet const& pset);
+  class WireSchemaFileWriter : public art::EDAnalyzer {
+  public:
+    explicit WireSchemaFileWriter(fhicl::ParameterSet const& pset);
 
-      private:
-        void beginJob() override;
-        void analyze(const art::Event&) override {}  // nothing per-event
+  private:
+    void beginJob() override;
+    void analyze(const art::Event&) override {} // nothing per-event
 
-        std::string fOutput;
-        std::string fGrouping;
-        int fCorrection;
-        bool fValidate;
-        bool fDone{false};
-    };
+    std::string fOutput;
+    std::string fGrouping;
+    int fCorrection;
+    bool fValidate;
+    bool fDone{false};
+  };
 
-    WireSchemaFileWriter::WireSchemaFileWriter(fhicl::ParameterSet const& pset)
-        : art::EDAnalyzer(pset)
-        , fOutput(pset.get<std::string>("output"))
-        , fGrouping(pset.get<std::string>("grouping", "tpcset"))
-        , fCorrection(pset.get<int>("correction",
-                          static_cast<int>(WireCell::WireSchema::Correction::pitch)))
-        , fValidate(pset.get<bool>("validate", true))
-    {
-    }
+  WireSchemaFileWriter::WireSchemaFileWriter(fhicl::ParameterSet const& pset)
+    : art::EDAnalyzer(pset)
+    , fOutput(pset.get<std::string>("output"))
+    , fGrouping(pset.get<std::string>("grouping", "tpcset"))
+    , fCorrection(
+        pset.get<int>("correction", static_cast<int>(WireCell::WireSchema::Correction::pitch)))
+    , fValidate(pset.get<bool>("validate", true))
+  {}
 
-    void WireSchemaFileWriter::beginJob()
-    {
-        if (fDone) return;
-        fDone = true;
+  void WireSchemaFileWriter::beginJob()
+  {
+    if (fDone) return;
+    fDone = true;
 
-        auto const* geom = art::ServiceHandle<geo::Geometry const>().get();
-        auto const& wires = art::ServiceHandle<geo::WireReadout const>()->Get();
+    auto const* geom = art::ServiceHandle<geo::Geometry const>().get();
+    auto const& wires = art::ServiceHandle<geo::WireReadout const>()->Get();
 
-        GroupingPolicy policy;
-        policy.grouping = grouping_from_string(fGrouping);
-        policy.correction = static_cast<WireCell::WireSchema::Correction>(fCorrection);
-        policy.validate = fValidate;
+    GroupingPolicy policy;
+    policy.grouping = grouping_from_string(fGrouping);
+    policy.correction = static_cast<WireCell::WireSchema::Correction>(fCorrection);
+    policy.validate = fValidate;
 
-        mf::LogInfo("WireSchemaFileWriter")
-            << "building WCT wire schema from detector '" << geom->DetectorName()
-            << "' (" << wires.Nchannels() << " channels), grouping=" << fGrouping;
+    mf::LogInfo("WireSchemaFileWriter")
+      << "building WCT wire schema from detector '" << geom->DetectorName() << "' ("
+      << wires.Nchannels() << " channels), grouping=" << fGrouping;
 
-        auto store = build_wire_schema(*geom, wires, policy);
+    auto store = build_wire_schema(*geom, wires, policy);
 
-        WireCell::WireSchema::dump(fOutput.c_str(), store);
+    WireCell::WireSchema::dump(fOutput.c_str(), store);
 
-        mf::LogInfo("WireSchemaFileWriter")
-            << "wrote " << fOutput << ": " << store.anodes().size() << " anodes, "
-            << store.faces().size() << " faces, " << store.planes().size()
-            << " planes, " << store.wires().size() << " wires";
-    }
+    mf::LogInfo("WireSchemaFileWriter")
+      << "wrote " << fOutput << ": " << store.anodes().size() << " anodes, " << store.faces().size()
+      << " faces, " << store.planes().size() << " planes, " << store.wires().size() << " wires";
+  }
 
-}  // namespace wcls
+} // namespace wcls
 
 DEFINE_ART_MODULE(wcls::WireSchemaFileWriter)

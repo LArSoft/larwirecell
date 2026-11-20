@@ -35,91 +35,90 @@
 #include <vector>
 
 namespace geo {
-    class GeometryCore;
-    class WireReadoutGeom;
+  class GeometryCore;
+  class WireReadoutGeom;
 }
 
 namespace wcls {
 
-    /// How LArSoft (cryostat, TPC) elements map onto WCT (anode, face).
-    ///
-    /// In all cases the WCT plane ident is the LArSoft plane index within its
-    /// TPC (0,1,2 == U,V,collection) and the WCT channel is exactly the LArSoft
-    /// offline channel, so the channel numbering is identical to the installed
-    /// channel map for every policy.  The policy only decides the anode/face
-    /// *organisation* of those wires.
-    enum class Grouping {
-        /// Anode == LArSoft TPCset (ie one CRP); its faces are the TPCs of that
-        /// set in LArSoft order.  This is the recommended, mapper-faithful
-        /// choice: for WireReadoutCRUGeom (TPCset==TPC) it yields single-face
-        /// anodes with no wrapping; for CRP/ColdBox mappers it yields
-        /// multi-face anodes whose shared induction channels wrap across faces.
-        kTPCset,
+  /// How LArSoft (cryostat, TPC) elements map onto WCT (anode, face).
+  ///
+  /// In all cases the WCT plane ident is the LArSoft plane index within its
+  /// TPC (0,1,2 == U,V,collection) and the WCT channel is exactly the LArSoft
+  /// offline channel, so the channel numbering is identical to the installed
+  /// channel map for every policy.  The policy only decides the anode/face
+  /// *organisation* of those wires.
+  enum class Grouping {
+    /// Anode == LArSoft TPCset (ie one CRP); its faces are the TPCs of that
+    /// set in LArSoft order.  This is the recommended, mapper-faithful
+    /// choice: for WireReadoutCRUGeom (TPCset==TPC) it yields single-face
+    /// anodes with no wrapping; for CRP/ColdBox mappers it yields
+    /// multi-face anodes whose shared induction channels wrap across faces.
+    kTPCset,
 
-        /// Anode == LArSoft TPC, one face per anode (face ident 0).  Matches the
-        /// wire-cell-python "dunevd 3view" (single-face) convention.
-        kPerTPC,
+    /// Anode == LArSoft TPC, one face per anode (face ident 0).  Matches the
+    /// wire-cell-python "dunevd 3view" (single-face) convention.
+    kPerTPC,
 
-        /// Anode == TPC/2, face == (1+TPC)%2.  Reproduces the legacy
-        /// wire-cell-python "multitpc"/"dunevd" wrapped two-face convention
-        /// (eg the shipped dunevd10kt_3view_30deg_v6 file).  Provided for
-        /// backward compatibility; prefer kTPCset for new files.
-        kPairTPC,
-    };
+    /// Anode == TPC/2, face == (1+TPC)%2.  Reproduces the legacy
+    /// wire-cell-python "multitpc"/"dunevd" wrapped two-face convention
+    /// (eg the shipped dunevd10kt_3view_30deg_v6 file).  Provided for
+    /// backward compatibility; prefer kTPCset for new files.
+    kPairTPC,
+  };
 
-    struct GroupingPolicy {
-        Grouping grouping{Grouping::kTPCset};
+  struct GroupingPolicy {
+    Grouping grouping{Grouping::kTPCset};
 
-        /// Correction level applied to the built store (see WireSchema::Correction).
-        /// Default "pitch" == the full set wcwires applies.
-        WireCell::WireSchema::Correction correction{WireCell::WireSchema::Correction::pitch};
+    /// Correction level applied to the built store (see WireSchema::Correction).
+    /// Default "pitch" == the full set wcwires applies.
+    WireCell::WireSchema::Correction correction{WireCell::WireSchema::Correction::pitch};
 
-        /// If true, throw if the corrected store fails validate().
-        bool validate{true};
+    /// If true, throw if the corrected store fails validate().
+    bool validate{true};
 
-        /// Relative epsilon passed to validate().
-        double repsilon{1e-6};
-    };
+    /// Relative epsilon passed to validate().
+    double repsilon{1e-6};
+  };
 
-    /// Parse a grouping policy name, one of "tpcset", "per-tpc", "pair-tpc".
-    /// Throws WireCell::ValueError on an unknown name.
-    Grouping grouping_from_string(const std::string& name);
+  /// Parse a grouping policy name, one of "tpcset", "per-tpc", "pair-tpc".
+  /// Throws WireCell::ValueError on an unknown name.
+  Grouping grouping_from_string(const std::string& name);
 
-    /// Build and return a corrected, validated WCT wire-schema Store from the
-    /// given LArSoft geometry and wire-readout.  Throws WireCell::ValueError on
-    /// a validation failure (when policy.validate is true).
-    WireCell::WireSchema::Store
-    build_wire_schema(const geo::GeometryCore& geom,
-                      const geo::WireReadoutGeom& wires,
-                      const GroupingPolicy& policy = {});
+  /// Build and return a corrected, validated WCT wire-schema Store from the
+  /// given LArSoft geometry and wire-readout.  Throws WireCell::ValueError on
+  /// a validation failure (when policy.validate is true).
+  WireCell::WireSchema::Store build_wire_schema(const geo::GeometryCore& geom,
+                                                const geo::WireReadoutGeom& wires,
+                                                const GroupingPolicy& policy = {});
 
-    /// The drift-axis geometry of one WCT anode face, from its LArSoft TPC.
-    /// Locations are X coordinates in WCT units.
-    struct DriftPlane {
-        double collection{0};  ///< center of the collection plane
-        double anode{0};       ///< anode bound, built coplanar with collection
-        double cathode{0};     ///< center of the active volume face opposite the planes
-        int drift_sign{0};     ///< +1 (-1) if electrons drift toward +X (-X)
-        /// False for a face without a real drift volume (see
-        /// build_drift_planes): WCT gets a null face, no sensitive volume.
-        bool sensitive{true};
-    };
+  /// The drift-axis geometry of one WCT anode face, from its LArSoft TPC.
+  /// Locations are X coordinates in WCT units.
+  struct DriftPlane {
+    double collection{0}; ///< center of the collection plane
+    double anode{0};      ///< anode bound, built coplanar with collection
+    double cathode{0};    ///< center of the active volume face opposite the planes
+    int drift_sign{0};    ///< +1 (-1) if electrons drift toward +X (-X)
+    /// False for a face without a real drift volume (see
+    /// build_drift_planes): WCT gets a null face, no sensitive volume.
+    bool sensitive{true};
+  };
 
-    /// Anode ident -> one DriftPlane per face, in the face order of the Store.
-    using DriftPlanes = std::map<int, std::vector<DriftPlane>>;
+  /// Anode ident -> one DriftPlane per face, in the face order of the Store.
+  using DriftPlanes = std::map<int, std::vector<DriftPlane>>;
 
-    /// Return the drift geometry of the faces of a store made by
-    /// build_wire_schema() from the same geometry and grouping.  A face
-    /// whose drift length (collection plane to cathode) is less than
-    /// min_drift_fraction of the longest one is insensitive (eg the ~2.5 cm
-    /// between a ProtoDUNE-HD APA and the cryostat wall).  Throws
-    /// WireCell::ValueError if a TPC does not drift along X.
-    DriftPlanes build_drift_planes(const geo::GeometryCore& geom,
+  /// Return the drift geometry of the faces of a store made by
+  /// build_wire_schema() from the same geometry and grouping.  A face
+  /// whose drift length (collection plane to cathode) is less than
+  /// min_drift_fraction of the longest one is insensitive (eg the ~2.5 cm
+  /// between a ProtoDUNE-HD APA and the cryostat wall).  Throws
+  /// WireCell::ValueError if a TPC does not drift along X.
+  DriftPlanes build_drift_planes(const geo::GeometryCore& geom,
                                  const geo::WireReadoutGeom& wires,
                                  const WireCell::WireSchema::Store& store,
                                  Grouping grouping,
                                  double min_drift_fraction = 0.1);
 
-}  // namespace wcls
+} // namespace wcls
 
 #endif

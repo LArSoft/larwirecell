@@ -13,28 +13,27 @@
 #ifndef LARWIRECELL_COMPONENTS_WIRESCHEMASOURCE_H
 #define LARWIRECELL_COMPONENTS_WIRESCHEMASOURCE_H
 
-#include "WireCellIface/IWireSchema.h"
 #include "WireCellIface/IConfigurable.h"
+#include "WireCellIface/IWireSchema.h"
 
 namespace wcls {
 
-    class WireSchemaSource : public WireCell::IWireSchema,
-                             public WireCell::IConfigurable {
-      public:
-        WireSchemaSource();
-        virtual ~WireSchemaSource();
+  class WireSchemaSource : public WireCell::IWireSchema, public WireCell::IConfigurable {
+  public:
+    WireSchemaSource();
+    virtual ~WireSchemaSource();
 
-        // IWireSchema
-        virtual const WireCell::WireSchema::Store& wire_schema_store() const;
+    // IWireSchema
+    virtual const WireCell::WireSchema::Store& wire_schema_store() const;
 
-        // IConfigurable
-        virtual void configure(const WireCell::Configuration& cfg);
-        virtual WireCell::Configuration default_configuration() const;
+    // IConfigurable
+    virtual void configure(const WireCell::Configuration& cfg);
+    virtual WireCell::Configuration default_configuration() const;
 
-      private:
-        WireCell::WireSchema::Store m_store;
-    };
+  private:
+    WireCell::WireSchema::Store m_store;
+  };
 
-}  // namespace wcls
+} // namespace wcls
 
 #endif
