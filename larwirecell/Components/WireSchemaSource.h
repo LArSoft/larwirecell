@@ -1,4 +1,4 @@
-/** WireSchemaSource (Option 3, WCT forwarder)
+/** WireSchemaSource (WCT forwarder to WireSchemaService)
  *
  *  A trivial, default-constructible WCT component that implements WireCell's
  *  IWireSchema by forwarding to the art-owned wcls::WireSchemaService.  It is a

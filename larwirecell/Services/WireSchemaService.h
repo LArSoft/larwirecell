@@ -1,4 +1,4 @@
-/** WireSchemaService (Option 3, data owner)
+/** WireSchemaService (art service, owns the wire-schema store)
  *
  *  An art service that builds -- on first use -- a Wire-Cell Toolkit wire-schema
  *  Store from the LArSoft geometry + wire-readout (channel map) services of the

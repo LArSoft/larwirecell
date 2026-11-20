@@ -1,4 +1,4 @@
-/** WireSchemaFileWriter (Option 1)
+/** WireSchemaFileWriter (writes a wires file)
  *
  *  An art analyzer that writes a Wire-Cell Toolkit "wires file" (.json, .json.bz2
  *  or .json.gz) derived directly from the LArSoft geometry + wire-readout

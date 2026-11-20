@@ -3,10 +3,10 @@
  *
  *  This is the single, shared "dump transform" used by both:
  *
- *   - the WireSchemaFileWriter_module (Option 1): an art job that writes a
+ *   - the WireSchemaFileWriter_module: an art job that writes a
  *     WCT "wires file" (.json.bz2) as a precursor step; and
  *
- *   - the WireSchemaService / wclsWireSchemaSource component (Option 3): an
+ *   - the WireSchemaService / wclsWireSchemaSource component: an
  *     in-process IWireSchema provider that hands WCT its geometry on the fly.
  *
  *  Because the anode/face/plane grouping, the channel numbers and the wire
