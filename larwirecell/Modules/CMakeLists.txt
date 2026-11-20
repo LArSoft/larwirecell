@@ -15,6 +15,16 @@ cet_build_plugin(WireCellToolkit art::SharedProducer
   art::Utilities
   )
 
+cet_build_plugin(WireSchemaFileWriter art::EDAnalyzer
+  LIBRARIES PRIVATE
+  larwirecell::WireCellLarsoft
+  larcore::Geometry_Geometry_service
+  larcorealg::Geometry
+  WireCell::Util
+  art::Framework_Principal
+  messagefacility::MF_MessageLogger
+  )
+
 add_subdirectory(Geometry)
 
 install_headers()
